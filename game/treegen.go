@@ -12,7 +12,6 @@ package game
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 )
 
@@ -34,23 +33,12 @@ type TreeList struct {
 }
 
 type BoolGrid struct {
-	w    int
-	h    int
+	w, h int
 	grid [][]bool
 }
 
-func (b *BoolGrid) FlipBool(x, y int) {
-	b.grid[x][y] = !b.grid[x][y]
-}
-
-func (b *BoolGrid) GetValueAt(x, y int) (bool, error) {
-	if (x < 0) || (y < 0) {
-		return false, errors.New("Cannot access a negative location.")
-	}
-	if ((len(b.grid) - 1) < x) || ((len(b.grid[x]) - 1) < y) {
-		return false, errors.New("Cannot access; outside of array bounds.")
-	}
-	return b.grid[x][y], nil
+func (b *BoolGrid) Set(x, y int, v bool) {
+	b.grid[x][y] = v
 }
 
 // CreateInitialTrees outputs a Randomized Boolean Grid pointer.
@@ -169,12 +157,29 @@ func (b *BoolGrid) CountLivingNeighbors(x, y int) int {
 	return lives
 }
 
-// Alive reports whether the specified cell is alive.
+// Alive reports whether the specified cell is alive, it simply calls another
+// function: one of the other "Alive" functions with specific rules.
+func (b *BoolGrid) Alive(x, y int) bool {
+	return b.AliveNoWrap(x, y)
+}
+
+// AliveNoWrap reports whether the specified cell is alive. It does NOT wrap.
+// If the value is outside of the boundaries, it will return false.
+func (b *BoolGrid) AliveNoWrap(x, y int) bool {
+	if (x < 0) || (y < 0) || (x >= b.w) || (y >= b.h) {
+		return false
+	}
+	return b.grid[x][y]
+}
+
+// AliveWrap reports whether the specified cell is alive.  It treats the world
+// as if it wraps around.
+//
 // If the x or y coordinates are outside the field boundaries they are wrapped
 // toroidally. For instance, an x value of -1 is treated as width-1.
 //
 // CREDITS: golang.org homepage example
-func (b *BoolGrid) Alive(x, y int) bool {
+func (b *BoolGrid) AliveWrap(x, y int) bool {
 	x += b.w
 	x %= b.w
 	y += b.h

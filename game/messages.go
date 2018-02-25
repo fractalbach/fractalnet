@@ -5,16 +5,10 @@ package game
 
 import (
 	"encoding/json"
-	"log"
 )
 
 type ChatMessage struct {
 	Chat string
-}
-
-type AdminMessage struct {
-	Type string
-	Body interface{}
 }
 
 // Message is the result of a JSON Marshalling.
@@ -46,8 +40,7 @@ type AbstractEvent struct {
 	// SourceId is usually the PlayerId of the client who sent initial request.
 	SourceId int
 
-	// SourceType is usually "Player", or "Admin", to designate origin.
-	// CURRENTLY NOT IN USE.
+	// SourceType is tagged on by the system, usually "player" or "admin".
 	SourceType string
 
 	// TargetId is usually a PlayerId used for "attack that person".
@@ -61,7 +54,17 @@ type AbstractEvent struct {
 	// Position is an array of values that imply a map location.
 	// Can relate to either source or target, depending on the event type.
 	Position []float64
+
+	// GridLocation designates a specific x and y integer Location.
+	Location Location
+
+	// Response is a channel that used to return values back to the caller.
+	Response chan interface{}
 }
+
+// _____________________________________________
+//  Get - Accessors
+// -------------------------------------------
 
 func (m *Message) GetMessageType() string {
 	return m.Type
@@ -79,6 +82,10 @@ func (a *AbstractEvent) GetEventBody() string {
 	return a.EventBody
 }
 
+// _____________________________________________
+//  Set - Mutators
+// -------------------------------------------
+
 func (a *AbstractEvent) SetEventBody(s string) {
 	a.EventBody = s
 }
@@ -91,6 +98,60 @@ func (a *AbstractEvent) SetSourceId(id int) {
 	a.SourceId = id
 }
 
+// _____________________________________________
+//  Has - I haz that
+// -------------------------------------------
+
+func (a *AbstractEvent) HasResponseChannel() bool {
+	if a.Response != nil {
+		return true
+	}
+	return false
+}
+
+// ______________________________________________________________
+//  Creating Events
+// ==============================================================
+
+// MakePlayerEvent converts a player's json byte stream into a useful event.
+// After it fills in the event json as best as possible, it overwrites the
+// SourceType and SourceId fields to those of a player.
+//
+// Example:
+// https://play.golang.org/p/0ekubkpy_Ou
+//
+func MakePlayerEvent(jsonblob []byte) (*AbstractEvent, error) {
+	m := new(AbstractEvent)
+	err := json.Unmarshal([]byte(jsonblob), m)
+	m.SourceType = "Player"
+	return m, err
+}
+
+// MakePlayerEventArray returns a pointer to an array of player events.
+// Similar to MakePlayerEvent(), the SourceType is overwritten to "Player",
+// and the SourceId is overwritten to the given integer: "playerId".
+//
+// Example:
+// https://play.golang.org/p/KqZwMOPwcbf
+//
+func MakePlayerEventArray(jsonblob []byte) (*[]AbstractEvent, error) {
+	marr := new([]AbstractEvent)
+	err := json.Unmarshal(jsonblob, marr)
+	if err != nil {
+		return marr, err
+	}
+	for i := len(*marr) - 1; i >= 0; i-- {
+		(*marr)[i].SourceType = "Player"
+	}
+	return marr, err
+}
+
+/*  ~~~~ BEGIN DISABLED ~~~~
+
+// _____________________________________________
+//  Other & older methods
+// -------------------------------------------
+
 // PlayerJsonToEvent converts a byte stream into an useful event object.
 //
 // When using this function, be sure to check for errors, to
@@ -101,6 +162,7 @@ func (a *AbstractEvent) SetSourceId(id int) {
 // Any issues with formating will "bubble up" to this function, and return
 // "false" for the boolean return value.
 //
+
 func PlayerJsonToEvent(jsonBlob []byte, playerId int) (*AbstractEvent, bool) {
 	m := ParsePlayerMessage(jsonBlob)
 	if e, ok := m.ConvertToEvent(); ok {
@@ -218,3 +280,5 @@ func convertLocationRequestToFloat(vals []interface{}) ([]float64, bool) {
 	}
 	return pos, true
 }
+
+~~~~ END DISABLED ~~~~ */

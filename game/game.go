@@ -20,16 +20,17 @@ type Ent struct {
 	Location []float64
 }
 
+type Location struct {
+	X int
+	Y int
+}
+
 type GameState struct {
 	State map[int]*Ent
 }
 
 type TreeState struct {
 	Trees string
-}
-
-type TreeLoc struct {
-	TreeLocs string
 }
 
 // ______________________________________________________
@@ -50,44 +51,38 @@ func MakeNewWorld() *World {
 // 		Manipulating the World
 // ------------------------------------------------------
 
-func (w *World) getTrees() *BoolGrid {
-	return w.Trees
-}
-
-func (w *World) getMapHeight() int {
+func (w *World) MapHeight() int {
 	return w.h
 }
 
-func (w *World) getMapWidth() int {
+func (w *World) MapWidth() int {
 	return w.w
 }
 
-func (w *World) GetNextId() int {
+func (w *World) makeNextId() int {
 	output := w.nextid
 	w.nextid++
 	return output
 }
 
-func (w *World) GeneratePlayer(username string) (int, bool) {
-	id := w.GetNextId()
-	ok := w.AddEntity(&Ent{Name: username, Type: "player"}, id)
+func (w *World) generatePlayer(username string) (int, bool) {
+	id := w.makeNextId()
+	ok := w.addEntity(&Ent{Name: username, Type: "player"}, id)
 	if ok {
 		return id, true
 	}
 	return 0, false
 }
 
-func AppendEnt(w *World, e *Ent) bool {
-	return w.AddEntity(e, w.GetNextId())
-}
-
-func (w *World) ChangeLocationEntity(id int, l []float64) {
+func (w *World) changeEntityLocation(id int, l []float64) bool {
 	if _, ok := w.Ents[id]; ok {
 		w.Ents[id].Location = l
+		return true
 	}
+	return false
 }
 
-func (w *World) AddEntity(e *Ent, id int) bool {
+func (w *World) addEntity(e *Ent, id int) bool {
 	if _, ok := w.Ents[id]; ok {
 		return false
 	}
@@ -95,7 +90,7 @@ func (w *World) AddEntity(e *Ent, id int) bool {
 	return true
 }
 
-func (w *World) DeleteEntity(id int) bool {
+func (w *World) deleteEntity(id int) bool {
 	if id == 0 {
 		return false
 	}
@@ -110,35 +105,62 @@ func (w *World) DeleteEntity(id int) bool {
 // 		Message & Event Handler
 // ------------------------------------------------------
 
-func (w *World) DoGameEvent(a *AbstractEvent) {
+func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 	switch a.EventType {
+
+	case "GameState":
+		return w.stateAllEntities()
+
 	case "Move":
-		w.ChangeLocationEntity(a.SourceId, a.GetPosition())
+		return w.changeEntityLocation(a.SourceId, a.Position)
+		return true
 
 	case "ToggleTree":
-		x := int(a.GetPosition()[0])
-		y := int(a.GetPosition()[1])
-		w.Trees.FlipBool(x, y)
+		newVal := false
+		if a.EventBody == "on" {
+			newVal = true
+		}
+		x, y := a.Location.X, a.Location.Y
+		w.Trees.Set(x, y, newVal)
+		return true
 
-	case "Login":
-	case "Logout":
-	case "Create":
-	case "Delete":
-	}
-}
-
-func (w *World) DoAdminEvent(a *AbstractEvent) {
-	switch a.EventType {
 	case "UpdateTrees":
 		w.Trees.NextGeneration()
+		return true
+
+	case "Login":
+		id, ok := w.generatePlayer(a.EventBody)
+		if ok {
+			return id
+		}
+		return 0
+
+	case "Logout":
+		return w.deleteEntity(a.TargetId)
+
+	case "Create":
+	case "Delete":
+	case "TreeState":
+		return w.stateAllTrees()
 	}
+	return false
 }
 
+/*
+func (w *World) DoAdminEvent(a *AbstractEvent) interface{} {
+	switch a.EventType {
+	case "Something Special":
+	case "Create World in 7 days":
+	case "Begin SunToRedGiant Expansion Protocol":
+	}
+	return false
+}
+*/
 // ______________________________________________________
 // 		Game State
 // ------------------------------------------------------
 
-func (w *World) StateAllEntities() []byte {
+func (w *World) stateAllEntities() []byte {
 	b, err := json.Marshal(GameState{w.Ents})
 	if err != nil {
 		log.Println(err)
@@ -147,7 +169,7 @@ func (w *World) StateAllEntities() []byte {
 	return b
 }
 
-func (w *World) StateAllTrees() []byte {
+func (w *World) stateAllTrees() []byte {
 	t, _, err := CompressBoolGrid(w.Trees.grid)
 	if err != nil {
 		log.Println(err)
@@ -162,21 +184,6 @@ func (w *World) StateAllTrees() []byte {
 	return msg
 }
 
-func (w *World) StateAllTreesLocations() []byte {
-	intList, err := ConvertBoolGridToLocationList(w.Trees.grid)
-	if err != nil {
-		log.Println(err)
-		return []byte{}
-	}
-	b64 := base64.StdEncoding.EncodeToString(intList)
-	msg, err := json.Marshal(TreeLoc{b64})
-	if err != nil {
-		log.Println(err)
-		return []byte{}
-	}
-	return msg
-}
-
 // ______________________________________________________
 //  The Game PRAM
 // ------------------------------------------------------
@@ -184,31 +191,121 @@ func (w *World) StateAllTreesLocations() []byte {
 // 			game events from the connection handling,
 //			and things like the chat room.
 // ------------------------------------------------------
-/*
+
 type GamePram struct {
-	msgchan   chan Message
-	adminchan chan AdminMessage
+	w         *World
+	eventchan chan *AbstractEvent
 }
 
 func NewGamePram() *GamePram {
 	storedpram := &GamePram{
-		msgchan:   make(chan Message),
-		adminchan: make(chan AdminMessage),
+		w:         MakeNewWorld(),
+		eventchan: make(chan *AbstractEvent),
 	}
+	log.Println("The World is now running in the Game PRAM...")
 	go storedpram.run()
 	return storedpram
 }
 
-func (gp *GamePram) run() {
+func (g *GamePram) run() {
 	for {
 		select {
-		case incoming := <-gp.msgchan:
-			EventHandler(incoming)
+		case e := <-g.eventchan:
+			r := g.w.DoGameEvent(e)
+			if e.HasResponseChannel() {
+				e.Response <- r
+			}
 
-		case incoming := <-gp.adminchan:
-			AdminEventHandler(incoming)
-
+			/*		case e := <-g.adminchan:
+					r := g.w.DoAdminEvent(e)
+					if e.HasResponseChannel() {
+						e.Response <- r
+					}*/
 		}
 	}
 }
-*/
+
+func (g *GamePram) RequestTreeState() []byte {
+	r := make(chan interface{})
+	event := &AbstractEvent{
+		EventType: "TreeState",
+		Response:  r,
+	}
+	g.eventchan <- event
+	a := <-r
+	output, ok := a.([]byte)
+	if ok {
+		return output
+	}
+	return []byte{}
+}
+
+func (g *GamePram) ToggleTreeEvent(x, y int, newVal bool) []byte {
+	r := make(chan interface{})
+	event := &AbstractEvent{
+		EventType: "ToggleTree",
+		Location:  Location{x, y},
+		Response:  r,
+	}
+	if newVal {
+		event.EventBody = "on"
+	}
+	g.eventchan <- event
+	a := <-r
+	output, ok := a.([]byte)
+	if ok {
+		return output
+	}
+	return []byte{}
+}
+
+func (g *GamePram) RequestGameState() []byte {
+	r := make(chan interface{})
+	event := &AbstractEvent{
+		EventType: "GameState",
+		Response:  r,
+	}
+	g.eventchan <- event
+	a := <-r
+	output, ok := a.([]byte)
+	if ok {
+		return output
+	}
+	return []byte{}
+}
+
+// LoginEvent returns playerId; If playerId returns 0, Login failed!
+func (g *GamePram) LoginEvent(username string) int {
+	r := make(chan interface{})
+	event := &AbstractEvent{
+		EventType: "Login",
+		EventBody: username,
+		Response:  r,
+	}
+	g.eventchan <- event
+	a := <-r
+	output, ok := a.(int)
+	if ok {
+		return output
+	}
+	return 0
+}
+
+func (g *GamePram) LogoutEvent(playerId int) {
+	event := &AbstractEvent{
+		EventType: "Logout",
+		TargetId:  playerId,
+	}
+	g.eventchan <- event
+}
+
+func (g *GamePram) UpdateTreesEvent() {
+	event := &AbstractEvent{
+		EventType: "UpdateTrees",
+	}
+	g.eventchan <- event
+}
+
+func (g *GamePram) CustomPlayerEvent(event *AbstractEvent) {
+	g.eventchan <- event
+}

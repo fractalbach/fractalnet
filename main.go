@@ -9,7 +9,7 @@ import (
 	"github.com/fractalbach/fractalnet/wschat"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+var addr = flag.String("a", "localhost:8080", "http service address")
 
 func main() {
 	log.Println("Starting up gamenet...")
@@ -29,6 +29,7 @@ func main() {
 	*/
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serveHome)
+	mux.HandleFunc("/favicon.ico", faviconHandler)
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		wschat.ServeWs(hub, w, r)
 	})
@@ -69,4 +70,8 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Bad Request.", 400)
+}
+
+func faviconHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "client/favicon.ico")
 }

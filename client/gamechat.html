@@ -3,7 +3,7 @@
 <head>
 <title>The Game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
 
 <script type="text/javascript">
 // __________________________________________________________________________
@@ -18,8 +18,8 @@ var MAP_WIDTH = 48;
 var MAP_HEIGHT = 48;
 var ListOfObjects = [];
 var MatrixOfTrees = [];
-
-var canvasSize = {x: 1248, y: 1248,};
+//1248
+var canvasSize = {x: 1536, y: 1536,};
 var grid = {size: {x: MAP_WIDTH, y: MAP_HEIGHT,}};
 var gridBox = {
     x: canvasSize.x / grid.size.x,
@@ -68,15 +68,32 @@ window.onload = function () {
         var mousePos = getMousePos(canvas, event)
         var boxYouClicked = {
             A: Math.floor(mousePos.x / gridBox.x),
-            B: Math.floor(mousePos.y / gridBox.y)
+            B: Math.floor(mousePos.y / gridBox.y),
         };
-        console.log('You just clicked Canvas!', mousePos, boxYouClicked);
-        ToggleTree(boxYouClicked.A, boxYouClicked.B);
+        //console.log('You just clicked Canvas!', mousePos, boxYouClicked);
+        x = boxYouClicked.A;
+        y = boxYouClicked.B;
+        ToggleTree(x, y, !MatrixOfTrees[x][y]);
     });
 
-    var ToggleTree = function(x, y) {
-        SendMsg("ToggleTree", [x, y]);
-    }
+    var ToggleTree = function(x, y, newVal) {
+        
+        ebody = "off";
+        if (newVal) {ebody = "on";};
+        j = {
+            "EventType": "ToggleTree",
+            "EventBody": ebody,
+            "Location": {"X": x,"Y": y},
+        };
+        conn.send(JSON.stringify(j));
+
+        if (ebody == "on") {
+            w.drawCharacterBox(x, y, 'white');
+        } else {
+            w.drawCharacterBox(x, y, 'gray');
+        }
+        
+    };
 
 
     // takes a parsed game state message object (array of key:object pairs).
@@ -85,6 +102,7 @@ window.onload = function () {
     // TODO: add support for different TYPES of objects
     var DrawGameStateObjects = function() {
         w.reDraw();
+        console.log(MatrixOfTrees.length)
         DrawTreesFromBoolMatrix(w, MatrixOfTrees);
 
         Object.keys(ListOfObjects).forEach(function (key) {
@@ -164,25 +182,32 @@ window.onload = function () {
         switch (MsgType) {
         case "chat":
             var j = {
-                    "Type": "Chat",
-                    "Body": MsgBody
+                    "EventType": "Chat",
+                    "EventBody": MsgBody
             }
             break;
 
         case "move":
             vector = MsgBody.split(",");
-            var x = parseFloat(vector[0])
-            var y = parseFloat(vector[1])
+            var x = parseFloat(vector[0]);
+            var y = parseFloat(vector[1]);
             var j = {
-                "Type": "move",
-                "Body": [x, y]
-            }
+                "EventType": "Move",
+                "Location": {"X": x,"Y": y},
+            };
             break;
+
+        case "ToggleTree":
+            var j = {
+                "EventType": "ToggleTree",
+                "Location": {"X": MsgBody[0],"Y": MsgBody[1]},
+            };
+            break;            
 
         default:   
             var j = {
-                "Type": MsgType,
-                "Body": MsgBody,
+                "EventType": MsgType,
+                "EventBody": MsgBody,
             };
         }
 
@@ -313,30 +338,49 @@ function myDecode(msg) {
 // Warning!  There is minimal error checking.  It is assumed that you do not
 // have any leftover bits!  For now, Only input a byteArray if the last byte
 // fully describes 8 booleans.
-//
+//  ByteArrayToBoolMatrix
+
 function ByteArrayToBoolMatrix(byteArray, h) {
+    p = ByteArrayToBoolArray(byteArray);
+    q = BoolArrayToBoolMatrix(p, h);
+    return q;
+}
+
+function ByteArrayToBoolArray(byteArray) {
     var counter = 0;
-    var outputMatrix = [];
-    var theseBools = [];
-    for (var i = byteArray.length - 1; i >= 0; i--) {
+    var outputArray = [];
+    var L = byteArray.length;
+
+    for (var i = 0; i < L; i++) {
         var val = byteArray[i];
+        var slice = [];
         for (var j = 7; j >= 0; j--) {
             if (val >= (1 << j)) {
-                theseBools.push(true)
+                slice.unshift(true);
                 val -= (1 << j);
             } else {
-                theseBools.push(false)
+                slice.unshift(false);
             }
         }
-        counter += 8;
-        if (counter >= h) {
-            outputMatrix.push(theseBools);
-            theseBools = [];
-            counter = 0;
-        }
+        outputArray.push.apply(outputArray, slice);
     }
-    return outputMatrix;
+    return outputArray;
 }
+
+function BoolArrayToBoolMatrix(boolArray, h) {
+    var matrix = [];
+    counter = 0;
+    for (var i = 0; i < h; i++) {
+        var slice = [];
+        for (var j = 0; j < h; j++) {
+            slice.push(boolArray[counter]);
+            counter++;
+        }
+        matrix.push(slice);
+    }
+    return matrix;
+}
+
 
 
 // DrawTreesFromBoolMatrix 
@@ -421,7 +465,7 @@ function World(context) {
         var width = gridBox.x;
         var height = gridBox.y;
         if (!mycolor) {
-            this.c.fillStyle = 'rgb(200, 12, 42)';
+            this.c.fillStyle = 'rgb(300, 12, 112)';
         } else {
             this.c.fillStyle = mycolor;
         }
@@ -608,6 +652,9 @@ body {
     background: #111;
     overflow: auto;
 }
+#CanvasBorder {
+    border: solid 2px;
+}
 #MainCanvas {
     display: block;
     margin: 0 auto;
@@ -673,7 +720,9 @@ input:focus {
 
 <div id="CanvasWrap">
     <div id="CanvasArea">
-        <canvas id="MainCanvas" width="1248" height="1248"></canvas>
+        <div id="CanvasBorder">
+            <canvas id="MainCanvas" width="1248" height="1248"></canvas>
+        </div>
     </div>
 </div>
 
