@@ -13,18 +13,37 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+var THE_RED = '#F22';
+var THE_GREEN = '#2F2';
+var THE_BLUE = '#45F';
+//var THE_RED = 'red';
+//var THE_GREEN = 'green';
+//var THE_BLUE = 'blue';
+
+
 
 var MAP_WIDTH = 48;
 var MAP_HEIGHT = 48;
+
 var ListOfObjects = [];
 var MatrixOfTrees = [];
-//1248
-var canvasSize = {x: 1536, y: 1536,};
+var canvasSize = {x: 1248, y: 1248,};
 var grid = {size: {x: MAP_WIDTH, y: MAP_HEIGHT,}};
 var gridBox = {
     x: canvasSize.x / grid.size.x,
     y: canvasSize.y / grid.size.y,
 };
+
+
+// Initialize the Boolean Array
+for (var i = MAP_WIDTH-1; i >= 0; i--) {
+    asdf = [];
+    for (var j = MAP_HEIGHT-1; j >= 0; j--) {
+        asdf.push(0);
+    }
+    MatrixOfTrees.push(0);
+} 
+
 
 // __________________________________________________________________________
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,8 +55,8 @@ window.onload = function () {
 
     var canvas = document.getElementById('MainCanvas');
     var ctx = canvas.getContext('2d');
-    canvas.width = canvasSize.x
-    canvas.height = canvasSize.y
+    canvas.width = canvasSize.x;
+    canvas.height = canvasSize.y;
     var w = new World(ctx);
     w.drawGridLines();
     w.c.save();
@@ -57,42 +76,45 @@ window.onload = function () {
         var rect = canvas.getBoundingClientRect();
         return {
             x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top
+            y: evt.clientY - rect.top,
         };
     }
 
+    // Whenever the Canvas is clicked, boxes will be changed!
+    // TODO: Only send a message to the server if websocket connection = true
     canvas.addEventListener('click', function(event) {
-        if (ToggleButton.tabIndex == 1) {
-            ToggleButton.tabIndex = 0;
+
+        var mousePos = getMousePos(canvas, event);
+        x = Math.floor(mousePos.x / gridBox.x);
+        y = Math.floor(mousePos.y / gridBox.y);
+
+        var newval, color;
+        switch (document.getElementById("ColorSelect").value) {
+        case 'R': newval = 1; color = THE_RED;   break;
+        case 'G': newval = 2; color = THE_GREEN; break;
+        case 'B': newval = 3; color = THE_BLUE;  break;
         }
-        var mousePos = getMousePos(canvas, event)
-        var boxYouClicked = {
-            A: Math.floor(mousePos.x / gridBox.x),
-            B: Math.floor(mousePos.y / gridBox.y),
-        };
-        //console.log('You just clicked Canvas!', mousePos, boxYouClicked);
-        x = boxYouClicked.A;
-        y = boxYouClicked.B;
-        ToggleTree(x, y, !MatrixOfTrees[x][y]);
+
+        if (MatrixOfTrees[y][x] == newval) {
+            w.drawCharacterBox(x, y, 'black');
+            LifeChange(x, y, 0);
+            return
+        }
+        w.drawCharacterBox(x, y, color);
+        LifeChange(x, y, newval);
+        if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
 
-    var ToggleTree = function(x, y, newVal) {
-        
-        ebody = "off";
-        if (newVal) {ebody = "on";};
-        j = {
-            "EventType": "ToggleTree",
-            "EventBody": ebody,
-            "Location": {"X": x,"Y": y},
-        };
-        conn.send(JSON.stringify(j));
 
-        if (ebody == "on") {
-            w.drawCharacterBox(x, y, 'white');
-        } else {
-            w.drawCharacterBox(x, y, 'gray');
-        }
-        
+    // LifeChange formats and sends a command to the server that will
+    // trigger the switching of a grid color.
+    var LifeChange = function(x, y, newval) {
+        j = {
+            "EventType": "LifeChange",
+            "Value": newval,
+            "Location": {"X": x,"Y": y},
+        };    
+        conn.send(JSON.stringify(j));
     };
 
 
@@ -102,8 +124,7 @@ window.onload = function () {
     // TODO: add support for different TYPES of objects
     var DrawGameStateObjects = function() {
         w.reDraw();
-        console.log(MatrixOfTrees.length)
-        DrawTreesFromBoolMatrix(w, MatrixOfTrees);
+        DrawColorsFromByteMatrix(w, MatrixOfTrees)
 
         Object.keys(ListOfObjects).forEach(function (key) {
             try {   
@@ -138,6 +159,7 @@ window.onload = function () {
             MyMessageWrap.className = "visible";
         }
     };
+
 
     ToggleButton.onclick = function () {
         toggleGameChatroom();
@@ -183,8 +205,8 @@ window.onload = function () {
         case "chat":
             var j = {
                     "EventType": "Chat",
-                    "EventBody": MsgBody
-            }
+                    "EventBody": MsgBody,
+            };
             break;
 
         case "move":
@@ -227,7 +249,7 @@ window.onload = function () {
     // ------------------------------------------------------------------
 
     if (window["WebSocket"]) {        
-        conn = new WebSocket("ws://" + document.location.host + "/ws");
+        conn = new WebSocket("ws://" + document.location.host + "/ws");    
         conn.onclose = function (evt) {
             var item = document.createElement("div");
             item.innerHTML = "<b>Connection closed.</b>";
@@ -260,7 +282,10 @@ window.onload = function () {
 
         if (theKeys.includes("State")) {
             ListOfObjects = msg.State;
-            console.log(ListOfObjects);
+        }
+
+        if (theKeys.includes("GridState")) {
+            MatrixOfTrees = UpdateMatrix(msg.GridState);
         }
 
         if (theKeys.includes("Trees")) {
@@ -331,6 +356,30 @@ function myDecode(msg) {
     return byteArray;
 }
 
+function Uint8ArrayToMatrix(byteArray, w, h) {
+    var matrix = [];
+    var mySlice = [];
+    for (var i = 0; i < h; i++) {
+        matrix.push(byteArray.slice(i*w, (i+1)*w)); 
+    }
+    return matrix;
+}
+function DrawColorsFromByteMatrix(world, matrix) {
+    for (var i = matrix.length - 1; i >= 0; i--) {
+        for (var j = matrix[i].length - 1; j >= 0; j--) {
+            switch (matrix[j][i]) {
+            case 0: continue;
+            case 1: x = THE_RED; break;
+            case 2: x = THE_GREEN; break;
+            case 3: x = THE_BLUE; break;
+            }
+            world.drawCharacterBox(i, j, x)
+        }
+    }
+}
+function UpdateMatrix(msg) {
+    return Uint8ArrayToMatrix(myDecode(msg), MAP_WIDTH, MAP_HEIGHT)
+}
 
 
 // ByteArrayToBoolMatrix converts []uint8  --into-->  [][]bool.
@@ -339,6 +388,9 @@ function myDecode(msg) {
 // have any leftover bits!  For now, Only input a byteArray if the last byte
 // fully describes 8 booleans.
 //  ByteArrayToBoolMatrix
+
+
+
 
 function ByteArrayToBoolMatrix(byteArray, h) {
     p = ByteArrayToBoolArray(byteArray);
@@ -401,8 +453,6 @@ function DrawTreesFromBoolMatrix(world, BoolMatrix) {
 
 
 
-
-
 // __________________________________________________________________________
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //                             Canvas World
@@ -439,10 +489,12 @@ function World(context) {
         this.c.beginPath();
         this.c.moveTo(x0,y0);
         this.c.lineTo(xf,yf);
+
         this.c.stroke();
     }
 
     this.drawGridLines = function() {
+        this.c.strokeStyle = '#FFF'
         for (var i = grid.size.x - 1; i >= 0; i--) {
             var x0 = i*gridBox.x;
             var xf = x0;
@@ -649,7 +701,7 @@ body {
     display: block;
     max-width: 100%;
     max-height: 100%;
-    background: #111;
+    background: #555;
     overflow: auto;
 }
 #CanvasBorder {
@@ -658,7 +710,7 @@ body {
 #MainCanvas {
     display: block;
     margin: 0 auto;
-    background: green;
+    background: #333;
 }
 .message {
     margin: 0.1em 0;
@@ -714,17 +766,37 @@ input:focus {
     text-align: center;
     color: white;
 }
+#ColorSelect {
+    position: fixed;
+    width: 5em;
+    height: 3em;
+}
+option {
+    height: 2em;
+}
 </style>
 </head>
 <body id="theBody">
 
-<div id="CanvasWrap">
-    <div id="CanvasArea">
-        <div id="CanvasBorder">
-            <canvas id="MainCanvas" width="1248" height="1248"></canvas>
+
+<div id="GameWrap">
+    <div id="CanvasWrap">
+        <div id="CanvasArea">
+            <div id="CanvasBorder">
+                <canvas id="MainCanvas" width="1248" height="1248"></canvas>
+            </div>
         </div>
     </div>
+
+    <div id="ColorSelectWrap">
+        <select id="ColorSelect">
+            <option id="ColorSelectRed" value="R" >Red</option>
+            <option id="ColorSelectGreen" value="G">Green</option>
+            <option id="ColorSelectBlue" value="B">Blue</option>
+        </select>
+    </div>
 </div>
+
 
 <div id="MessageWrap" class="invisible">
     <form id="commandForm">
@@ -743,6 +815,8 @@ input:focus {
     <div id="LogWrap"> 
         <div id="log"></div>
     </div>
+
+
 <!-- 
     <form id="form">
         <input id="ButtonPlainSend" type="submit" value="Send" />
@@ -750,9 +824,12 @@ input:focus {
     </form>
  -->
 </div>
+
 <div id ="ButtonToggleCLI" tabindex="1" role="button">
-    <div id ="ButtonToggleText">↕   ChatRoom   ↕</div>
+    <div id ="ButtonToggleText">↕   Chat Room   ↕</div>
 </div>
+
+
 </body>
 </html>
 

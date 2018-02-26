@@ -23,7 +23,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
-	maxMessageSize = 1024
+	maxMessageSize = 30000
 
 	// Maximum number of active clients allowed.
 	maxActiveClients = 10
@@ -216,7 +216,7 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// displayed, so that the new player can learn about what is happening.
 	client.hub.broadcast <- []byte("Welcome, " + client.username + ".")
 	client.hub.broadcast <- client.hub.pram.RequestGameState()
-	client.hub.broadcast <- client.hub.pram.RequestTreeState()
+	client.hub.broadcast <- client.hub.pram.RequestLifeState()
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -238,10 +238,12 @@ func (c *Client) eventSwitcher(event *game.AbstractEvent) {
 	case "Chat":
 		message, err := json.Marshal(game.ChatMessage{
 			prettyNow() + " > " + c.username + ": " + event.GetEventBody()})
+
 		if err != nil {
 			log.Println(err)
 			return
 		}
+
 		addMessage(message)
 		c.hub.broadcast <- message
 		return

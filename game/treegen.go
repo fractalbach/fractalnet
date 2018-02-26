@@ -2,10 +2,8 @@
 //
 //  Fun Experiments from the playground:
 /*
-Spare Boolean Matrices
+Compressing Boolean Matrices to Base 64:
 	https://play.golang.org/p/mX9XQY-5IdN
-
-
 
 */
 package game

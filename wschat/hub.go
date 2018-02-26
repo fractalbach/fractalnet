@@ -41,8 +41,10 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 
 	// Set a Timer to Update the Tree Generations
-	treeUpdateTicker := time.NewTicker(1 * time.Second)
-	go h.treeUpdateTimer(treeUpdateTicker)
+	// treeUpdateTicker := time.NewTicker(1 * time.Second)
+	// go h.treeUpdateTimer(treeUpdateTicker)
+	lifeUpdateTicker := time.NewTicker(1 * time.Second)
+	go h.lifeUpdateTimer(lifeUpdateTicker)
 
 	// Enter Hub Loop; waiting for messages to arrive from clients.
 	for {
@@ -106,6 +108,17 @@ func (h *Hub) treeUpdateTimer(treeUpdateTicker *time.Ticker) {
 		log.Println("Tree Update:", t)
 		h.pram.UpdateTreesEvent()
 		h.broadcast <- h.pram.RequestTreeState()
+	}
+}
+
+func (h *Hub) lifeUpdateTimer(lifeUpdateTicker *time.Ticker) {
+	for t := range lifeUpdateTicker.C {
+		if numberOfActiveClients <= 0 {
+			continue
+		}
+		log.Println("Life Update:", t)
+		h.pram.UpdateLifeEvent()
+		h.broadcast <- h.pram.RequestLifeState()
 	}
 }
 

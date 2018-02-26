@@ -30,33 +30,33 @@ type AbstractEvent struct {
 	// through the system.  Currently NOT IN USE.
 	EventId int
 
+	// SourceId is usually the PlayerId of the client who sent initial request.
+	SourceId int
+
+	// TargetId is usually a PlayerId used for "attack that person".
+	TargetId int
+
+	// Value is an arbitrary byte value.
+	Value uint8
+
+	// GridLocation designates a specific x and y integer Location.
+	Location Location
+
 	// EventType distinguishes different kinds of events.
-	// CURRENTLY NOT IN USE.
 	EventType string
 
 	// EventBody is for an arbitrary String, mostly used in chat messages.
 	EventBody string
 
-	// SourceId is usually the PlayerId of the client who sent initial request.
-	SourceId int
-
 	// SourceType is tagged on by the system, usually "player" or "admin".
 	SourceType string
 
-	// TargetId is usually a PlayerId used for "attack that person".
-	// CURRENTLY NOT IN USE.
-	TargetId int
-
 	// TargetType could be something like "player" or "tree".
-	// CURRENTLY NOT IN USE.
 	TargetType string
 
 	// Position is an array of values that imply a map location.
 	// Can relate to either source or target, depending on the event type.
 	Position []float64
-
-	// GridLocation designates a specific x and y integer Location.
-	Location Location
 
 	// Response is a channel that used to return values back to the caller.
 	Response chan interface{}

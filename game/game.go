@@ -1,9 +1,15 @@
 package game
 
 import (
-	"encoding/base64"
+	//"encoding/base64"
 	"encoding/json"
+	"github.com/fractalbach/fractalnet/cellular"
 	"log"
+)
+
+var (
+	GAME_WORLD_WIDTH  = 48
+	GAME_WORLD_HEIGHT = 48
 )
 
 type World struct {
@@ -11,7 +17,8 @@ type World struct {
 	nextid int
 	h      int //height (number of tiles in y direction)
 	w      int //width  (number of tiles in x direction)
-	Trees  *BoolGrid
+	// Trees  *BoolGrid
+	LifeGrid *cellular.Life
 }
 
 type Ent struct {
@@ -39,11 +46,12 @@ type TreeState struct {
 
 func MakeNewWorld() *World {
 	return &World{
-		Ents:   map[int]*Ent{},
-		nextid: 1,
-		h:      48,
-		w:      48,
-		Trees:  CreateRandomInitialTrees(48, 48),
+		Ents:     map[int]*Ent{},
+		nextid:   1,
+		h:        GAME_WORLD_HEIGHT,
+		w:        GAME_WORLD_WIDTH,
+		LifeGrid: cellular.NewLife(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
+		//Trees:  CreateRandomInitialTrees(48, 48),
 	}
 }
 
@@ -108,40 +116,51 @@ func (w *World) deleteEntity(id int) bool {
 func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 	switch a.EventType {
 
+	case "LifeState":
+		return w.LifeGrid.LifeStateMessage()
+
+	case "LifeUpdate":
+		w.LifeGrid.Step()
+		return true
+
+	case "LifeChange":
+		w.LifeGrid.AlterAt(a.Location.X, a.Location.Y, a.Value)
+		return true
+
 	case "GameState":
 		return w.stateAllEntities()
 
 	case "Move":
 		return w.changeEntityLocation(a.SourceId, a.Position)
-		return true
-
-	case "ToggleTree":
-		newVal := false
-		if a.EventBody == "on" {
-			newVal = true
-		}
-		x, y := a.Location.X, a.Location.Y
-		w.Trees.Set(x, y, newVal)
-		return true
-
-	case "UpdateTrees":
-		w.Trees.NextGeneration()
-		return true
 
 	case "Login":
-		id, ok := w.generatePlayer(a.EventBody)
-		if ok {
-			return id
-		}
-		return 0
+		id, _ := w.generatePlayer(a.EventBody)
+		return id
 
 	case "Logout":
 		return w.deleteEntity(a.TargetId)
 
+		/*
+			case "ToggleTree":
+				newVal := false
+				if a.EventBody == "on" {
+					newVal = true
+				}
+				x, y := a.Location.X, a.Location.Y
+				w.Trees.Set(x, y, newVal)
+				return true
+
+			case "UpdateTrees":
+				w.Trees.NextGeneration()
+				return true
+
+			case "TreeState":
+				return w.stateAllTrees()
+		*/
+
 	case "Create":
 	case "Delete":
-	case "TreeState":
-		return w.stateAllTrees()
+
 	}
 	return false
 }
@@ -169,6 +188,7 @@ func (w *World) stateAllEntities() []byte {
 	return b
 }
 
+/*
 func (w *World) stateAllTrees() []byte {
 	t, _, err := CompressBoolGrid(w.Trees.grid)
 	if err != nil {
@@ -183,7 +203,7 @@ func (w *World) stateAllTrees() []byte {
 	}
 	return msg
 }
-
+*/
 // ______________________________________________________
 //  The Game PRAM
 // ------------------------------------------------------
@@ -235,6 +255,20 @@ func (g *GamePram) RequestTreeState() []byte {
 	a := <-r
 	output, ok := a.([]byte)
 	if ok {
+		return output
+	}
+	return []byte{}
+}
+
+func (g *GamePram) RequestLifeState() []byte {
+	r := make(chan interface{})
+	event := &AbstractEvent{
+		EventType: "LifeState",
+		Response:  r,
+	}
+	g.eventchan <- event
+	a := <-r
+	if output, ok := a.([]byte); ok {
 		return output
 	}
 	return []byte{}
@@ -302,6 +336,13 @@ func (g *GamePram) LogoutEvent(playerId int) {
 func (g *GamePram) UpdateTreesEvent() {
 	event := &AbstractEvent{
 		EventType: "UpdateTrees",
+	}
+	g.eventchan <- event
+}
+
+func (g *GamePram) UpdateLifeEvent() {
+	event := &AbstractEvent{
+		EventType: "LifeUpdate",
 	}
 	g.eventchan <- event
 }
