@@ -12,7 +12,7 @@
 
 
 Color | Enemy | Fun Description
-------|-------
+------|-------|------------------------
 Red | Blue | Water puts out a fire.
 Blue | Green | Earth grows out of water.
 Green | Red | Fire burns the earth. 
