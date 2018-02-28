@@ -3,7 +3,7 @@ package game
 import (
 	//"encoding/base64"
 	"encoding/json"
-	"github.com/fractalbach/fractalnet/cellular"
+	"github.com/fractalbach/fractalnet/cellular/wave"
 	"log"
 )
 
@@ -18,7 +18,7 @@ type World struct {
 	h      int //height (number of tiles in y direction)
 	w      int //width  (number of tiles in x direction)
 	// Trees  *BoolGrid
-	LifeGrid *cellular.Life
+	LifeGrid *wave.Life
 }
 
 type Ent struct {
@@ -50,7 +50,7 @@ func MakeNewWorld() *World {
 		nextid:   1,
 		h:        GAME_WORLD_HEIGHT,
 		w:        GAME_WORLD_WIDTH,
-		LifeGrid: cellular.NewLife(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
+		LifeGrid: wave.NewLife(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
 		//Trees:  CreateRandomInitialTrees(48, 48),
 	}
 }

@@ -512,10 +512,10 @@ function World(context) {
     }
 
     this.drawCharacterBox = function(A, B, mycolor) {
-        var x = A * gridBox.x;
-        var y = B * gridBox.y;
-        var width = gridBox.x;
-        var height = gridBox.y;
+        var x = A * gridBox.x + 1;
+        var y = B * gridBox.y + 1;
+        var width = gridBox.x - 2;
+        var height = gridBox.y - 2;
         if (!mycolor) {
             this.c.fillStyle = 'rgb(300, 12, 112)';
         } else {

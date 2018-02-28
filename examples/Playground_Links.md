@@ -1,117 +1,7 @@
-# FractalNet
-
-To Play the current version of whatever happens to be live, go to the
-server:
-
-## Location of Server:  http://35.230.55.6/
-
-Hosted on Google Cloud.
-
-
-
-# Cellular Automata
-
-* Each grid square is one of 4 different types:  Red, Green, Blue, or Empty.
-* The "Neighborhood" of a cell is the 8 surrounding cells.
-
-
-Color | Enemy | Fun Description
-------|-------|------------------------
-Red | Blue | Water puts out a fire.
-Blue | Green | Earth grows out of water.
-Green | Red | Fire burns the earth. 
-
-
-
-
-
-# Message Examples
-
-Location of WebSocket:  ws://35.230.55.6/ws
-
-
-## Chat
-
-```JSON 
-{
-    "EventType": "Chat",
-    "EventBody": "Hello World!",
-}    
-```
-
-
-
-
-
-## Change a Square (Life Change)
-
-
-Currently, the Grid is 48 x 48.  So the Location coordinates _x_ and _y_ are in the range of [0, 47].
-
-
-Values match with the colors:
-
-* 0 = empty
-* 1 = Red
-* 2 = Green
-* 3 = Blue 
-
-
-
-```JSON 
-{
-    "EventType": "LifeChange",
-    "Value": 3,
-    "Location": 
-    {
-        "X": 0,
-        "Y": 47,
-    }
-}    
-```
-
-
-
-
-
-## Update to the Next Generation (Life Update)
-
-```JSON 
-{
-    "EventType": "LifeUpdate",
-}
-```
-
-
-
-
-
-
-
-
-
-
-
------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Experiments
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        Links to Various Playground Examples!
+		Links to Various Playground Examples!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -122,7 +12,7 @@ Map is color -> count
 or map[uint8]uint8,
 since the colors are enumerated.
 
-* https://play.golang.org/p/onURkjVxI7K
+https://play.golang.org/p/onURkjVxI7K
 
 ----------------------------------------------------------------------
 
@@ -142,18 +32,13 @@ This one is pretty odd.  But has an interesting property.
 
 # Wave Patterns
 
-
-
-## Rough Waves
-
-
-This one is oddly beautiful:
+This one is oddly beautiful
 https://play.golang.org/p/SofMEv8cpHM
 
-Waves of awesomeness:
+
+
+Waves of awesomeness
 https://play.golang.org/p/A9YtAkoVkIa
-
-
 
 
         ▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒█████████████████▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓████████▒
@@ -200,9 +85,6 @@ and there are no extra cells to form at edge cases.
 The main difference from this wave and the previous wave is the fact that
 it has "return me" at the end.  Which means it won't change from it's 
 original value.
-
-
-This one is my favorite pattern!
 
 
 
