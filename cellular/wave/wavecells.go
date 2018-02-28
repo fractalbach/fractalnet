@@ -107,10 +107,10 @@ func (f *Field) Next(x, y int) uint8 {
 		}
 	}
 	q := []uint8{
-		f.WhatIs(x-2, y),
-		f.WhatIs(x, y-2),
 		f.WhatIs(x+2, y),
+		f.WhatIs(x-2, y),
 		f.WhatIs(x, y+2),
+		f.WhatIs(x, y-2),
 	}
 	for _, val := range q {
 		if val != 0 {
@@ -125,18 +125,13 @@ func (f *Field) Next(x, y int) uint8 {
 	if n[enemy] >= 3 {
 		return enemy
 	}
-
 	if (n[me] == 2) || (n[me] == 3) || (n[me] == 5) {
 		return me
 	}
 	greatColors, greatValue := Abundance(n)
 	if greatValue >= 0 && len(greatColors) == 1 {
 		return greatColors[0]
-		//return greatColors[gimmeRandom(len(greatColors))]
 	}
-
-	// greatColors, greatValue := Abundance(n)
-
 	return me
 }
 
