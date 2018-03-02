@@ -55,6 +55,7 @@ func (h *Hub) Run() {
 			numberOfActiveClients++
 			h.clientAutoLogin(client)
 			sendAllSavedMessages(client)
+			log.Println("There are now", numberOfActiveClients, "online.")
 
 		case client := <-h.unregister:
 			h.clientAutoLogout(client)
@@ -63,6 +64,7 @@ func (h *Hub) Run() {
 				close(client.send)
 				numberOfActiveClients--
 			}
+			log.Println("There are now", numberOfActiveClients, "online.")
 
 		// Messages sent to the hub's broadcast channel,
 		// are sent to all other active clients.  If a message is unable
@@ -100,17 +102,10 @@ func prettyNow() string {
 	return time.Now().Format("3:04 PM")
 }
 
-func (h *Hub) treeUpdateTimer(treeUpdateTicker *time.Ticker) {
-	for t := range treeUpdateTicker.C {
-		if numberOfActiveClients <= 0 {
-			continue
-		}
-		log.Println("Tree Update:", t)
-		h.pram.UpdateTreesEvent()
-		h.broadcast <- h.pram.RequestTreeState()
-	}
-}
-
+// lifeUpdateTimer defines the actions of the timer, but not the rate of it.
+// It sends a game event to trigger an update to the next generation,
+// and a game event request for game state.
+// The Game state is broadcast to all active clients.
 func (h *Hub) lifeUpdateTimer(lifeUpdateTicker *time.Ticker) {
 	for t := range lifeUpdateTicker.C {
 		if numberOfActiveClients <= 0 {
@@ -118,7 +113,7 @@ func (h *Hub) lifeUpdateTimer(lifeUpdateTicker *time.Ticker) {
 		}
 		log.Println("Life Update:", t)
 		h.pram.UpdateLifeEvent()
-		h.broadcast <- h.pram.RequestLifeState()
+		h.broadcast <- h.pram.RequestSomething("LifeState")
 	}
 }
 

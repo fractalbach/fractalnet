@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>The Game</title>
+<title>💥  Game of War 💣 </title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 
@@ -19,8 +19,16 @@ var THE_BLUE = '#45F';
 //var THE_RED = 'red';
 //var THE_GREEN = 'green';
 //var THE_BLUE = 'blue';
+var EMPTY_SQUARE = "#AAA"
+var PLAYER_1 = "#030";
+var PLAYER_2 = "#49F";
 
-
+var SQUARE_3 = "#F00";
+var SQUARE_4 = "#D10";
+var SQUARE_5 = "#B20";
+var SQUARE_6 = "#930";
+var SQUARE_7 = "#840";
+var UNKNOWN_SQUARE = "#A55";
 
 var MAP_WIDTH = 48;
 var MAP_HEIGHT = 48;
@@ -88,20 +96,29 @@ window.onload = function () {
         x = Math.floor(mousePos.x / gridBox.x);
         y = Math.floor(mousePos.y / gridBox.y);
 
-        var newval, color;
+        var newval; var colorChanger = false;
         switch (document.getElementById("ColorSelect").value) {
-        case 'R': newval = 1; color = THE_RED;   break;
-        case 'G': newval = 2; color = THE_GREEN; break;
-        case 'B': newval = 3; color = THE_BLUE;  break;
+        case '1': 
+            newval = 1; 
+            colorChanger = true; 
+            color = PLAYER_1;
+            break;
+
+        case '2': 
+            newval = 2; 
+            colorChanger = true;
+            color = PLAYER_2;
+            break;
+
+        case 'bomba1': DropLaBomba(x, y, 1); break;
+        case 'bomba2': DropLaBomba(x, y, 2); break;
         }
 
-        if (MatrixOfTrees[y][x] == newval) {
-            w.drawCharacterBox(x, y, 'black');
-            LifeChange(x, y, 0);
-            return
+        if (colorChanger) {
+            w.drawCharacterBox(x, y, color);
+            LifeChange(x, y, newval);
         }
-        w.drawCharacterBox(x, y, color);
-        LifeChange(x, y, newval);
+        
         if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
 
@@ -112,6 +129,15 @@ window.onload = function () {
         j = {
             "EventType": "LifeChange",
             "Value": newval,
+            "Location": {"X": x,"Y": y},
+        };    
+        conn.send(JSON.stringify(j));
+    };
+
+    var DropLaBomba = function(x, y, player1or2) {
+        j = {
+            "EventType": "LaBomba",
+            "Value": player1or2,
             "Location": {"X": x,"Y": y},
         };    
         conn.send(JSON.stringify(j));
@@ -368,10 +394,15 @@ function DrawColorsFromByteMatrix(world, matrix) {
     for (var i = matrix.length - 1; i >= 0; i--) {
         for (var j = matrix[i].length - 1; j >= 0; j--) {
             switch (matrix[j][i]) {
-            case 0: continue;
-            case 1: x = THE_RED; break;
-            case 2: x = THE_GREEN; break;
-            case 3: x = THE_BLUE; break;
+            case 0: x = EMPTY_SQUARE; break;
+            case 1: x = PLAYER_1; break;
+            case 2: x = PLAYER_2; break;
+            case 3: x = SQUARE_3; break;
+            case 4: x = SQUARE_4; break;
+            case 5: x = SQUARE_5; break;
+            case 6: x = SQUARE_6; break;
+            case 7: x = SQUARE_7; break;
+            default: x = UNKNOWN_SQUARE; break;
             }
             world.drawCharacterBox(i, j, x)
         }
@@ -778,7 +809,7 @@ input:focus {
 }
 #ColorSelect {
     position: fixed;
-    width: 5em;
+    width: 20em;
     height: 3em;
 }
 option {
@@ -800,9 +831,10 @@ option {
 
     <div id="ColorSelectWrap">
         <select id="ColorSelect">
-            <option id="ColorSelectRed" value="R" >Red</option>
-            <option id="ColorSelectGreen" value="G">Green</option>
-            <option id="ColorSelectBlue" value="B">Blue</option>
+            <option value="1" >Player 1</option>
+            <option value="bomba1">💣 Player 1 - La Bomba 💣</option>
+            <option value="2">Player 2</option>
+            <option value="bomba2">💣 Player 2 - La Bomba 💣</option>
         </select>
     </div>
 </div>

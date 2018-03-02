@@ -60,8 +60,16 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.URL.Path {
-	case "/", "/client/":
-		http.ServeFile(w, r, "client/gamechat.html")
+	case "/":
+		http.ServeFile(w, r, "index.html")
+		return
+
+	case "/gamechat.html":
+		http.ServeFile(w, r, "gamechat.html")
+		return
+
+	case "/war.html":
+		http.ServeFile(w, r, "war.html")
 		return
 
 	default:

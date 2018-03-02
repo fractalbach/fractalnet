@@ -27,9 +27,6 @@ const (
 
 	// Maximum number of active clients allowed.
 	maxActiveClients = 10
-
-	// Number of Messages saved on the server.
-	maxSave int = 30
 )
 
 var (
@@ -52,6 +49,7 @@ type Client struct {
 	send     chan []byte     // Buffered channel of outbound messages.
 	username string          // Username associated with a specific client.
 	playerid int
+	response chan interface{}
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -146,14 +144,13 @@ func (c *Client) writePump() {
 	}()
 	for {
 		select {
+
 		case message, ok := <-c.send:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The hub closed the channel.
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
@@ -170,6 +167,7 @@ func (c *Client) writePump() {
 			if err := w.Close(); err != nil {
 				return
 			}
+
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			err := c.conn.WriteMessage(websocket.PingMessage, nil)
@@ -195,14 +193,17 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Register a new Client connection into the hub.
+	// Create a pointer object to a new Client.
+	// Also creates a dedicated channel for response messages.
 	client := &Client{
 		hub:      hub,
 		conn:     conn,
 		send:     make(chan []byte, 256),
 		username: namegen.GenerateUsername(),
+		response: make(chan interface{}),
 	}
 
+	// Register that new Client Object into the hub.
 	client.hub.register <- client
 	log.Println(
 		"Client Registered:", client.conn.RemoteAddr(), client.username)
@@ -211,12 +212,13 @@ func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+	go client.ResponseListener()
 
 	// Send a welcoming message, and then request game state messages to be
 	// displayed, so that the new player can learn about what is happening.
 	client.hub.broadcast <- []byte("Welcome, " + client.username + ".")
-	client.hub.broadcast <- client.hub.pram.RequestGameState()
-	client.hub.broadcast <- client.hub.pram.RequestLifeState()
+	client.hub.broadcast <- client.hub.pram.RequestSomething("GameState")
+	client.hub.broadcast <- client.hub.pram.RequestSomething("LifeState")
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -258,9 +260,22 @@ func (c *Client) eventSwitcher(event *game.AbstractEvent) {
 	*/
 
 	default:
+		event.Response = c.response
 		c.hub.pram.CustomPlayerEvent(event)
 		//c.hub.broadcast <- c.hub.pram.RequestGameState()
 	}
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+func (c *Client) ResponseListener() {
+	for {
+		select {
+		case msg := <-c.response:
+			b, ok := msg.([]byte)
+			if ok {
+				c.send <- b
+			}
+		}
+	}
+}

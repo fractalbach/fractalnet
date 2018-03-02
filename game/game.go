@@ -3,7 +3,7 @@ package game
 import (
 	//"encoding/base64"
 	"encoding/json"
-	"github.com/fractalbach/fractalnet/cellular/wave"
+	"github.com/fractalbach/fractalnet/cellular/gameofwar"
 	"log"
 )
 
@@ -13,23 +13,21 @@ var (
 )
 
 type World struct {
-	Ents   map[int]*Ent
-	nextid int
-	h      int //height (number of tiles in y direction)
-	w      int //width  (number of tiles in x direction)
-	// Trees  *BoolGrid
-	LifeGrid *wave.Life
+
+	// Ents is for "Entities".  It's a hash map of {ID number: Entity}
+	Ents map[int]*Ent
+
+	// War is the instance of the Game Of War corresponding to this World.
+	War *gameofwar.GameInstance
+
+	// private variables include the ID counter (nextid) and map dimensions.
+	nextid, w, h int
 }
 
 type Ent struct {
 	Name     string
 	Type     string
-	Location []float64
-}
-
-type Location struct {
-	X int
-	Y int
+	Location Location
 }
 
 type GameState struct {
@@ -46,12 +44,13 @@ type TreeState struct {
 
 func MakeNewWorld() *World {
 	return &World{
-		Ents:     map[int]*Ent{},
-		nextid:   1,
-		h:        GAME_WORLD_HEIGHT,
-		w:        GAME_WORLD_WIDTH,
-		LifeGrid: wave.NewLife(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
+		Ents:   map[int]*Ent{},
+		nextid: 1,
+		h:      GAME_WORLD_HEIGHT,
+		w:      GAME_WORLD_WIDTH,
+		War:    gameofwar.NewGameInstance(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
 		//Trees:  CreateRandomInitialTrees(48, 48),
+		//LifeGrid: wave.NewLife(GAME_WORLD_WIDTH, GAME_WORLD_HEIGHT),
 	}
 }
 
@@ -82,9 +81,9 @@ func (w *World) generatePlayer(username string) (int, bool) {
 	return 0, false
 }
 
-func (w *World) changeEntityLocation(id int, l []float64) bool {
+func (w *World) changeEntityLocation(id, x, y int) bool {
 	if _, ok := w.Ents[id]; ok {
-		w.Ents[id].Location = l
+		w.Ents[id].Location.Set(x, y)
 		return true
 	}
 	return false
@@ -109,76 +108,6 @@ func (w *World) deleteEntity(id int) bool {
 	return false
 }
 
-// ______________________________________________________
-// 		Message & Event Handler
-// ------------------------------------------------------
-
-func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
-	switch a.EventType {
-
-	case "LifeState":
-		return w.LifeGrid.LifeStateMessage()
-
-	case "LifeUpdate":
-		w.LifeGrid.Step()
-		return true
-
-	case "LifeChange":
-		w.LifeGrid.AlterAt(a.Location.X, a.Location.Y, a.Value)
-		return true
-
-	case "GameState":
-		return w.stateAllEntities()
-
-	case "Move":
-		return w.changeEntityLocation(a.SourceId, a.Position)
-
-	case "Login":
-		id, _ := w.generatePlayer(a.EventBody)
-		return id
-
-	case "Logout":
-		return w.deleteEntity(a.TargetId)
-
-		/*
-			case "ToggleTree":
-				newVal := false
-				if a.EventBody == "on" {
-					newVal = true
-				}
-				x, y := a.Location.X, a.Location.Y
-				w.Trees.Set(x, y, newVal)
-				return true
-
-			case "UpdateTrees":
-				w.Trees.NextGeneration()
-				return true
-
-			case "TreeState":
-				return w.stateAllTrees()
-		*/
-
-	case "Create":
-	case "Delete":
-
-	}
-	return false
-}
-
-/*
-func (w *World) DoAdminEvent(a *AbstractEvent) interface{} {
-	switch a.EventType {
-	case "Something Special":
-	case "Create World in 7 days":
-	case "Begin SunToRedGiant Expansion Protocol":
-	}
-	return false
-}
-*/
-// ______________________________________________________
-// 		Game State
-// ------------------------------------------------------
-
 func (w *World) stateAllEntities() []byte {
 	b, err := json.Marshal(GameState{w.Ents})
 	if err != nil {
@@ -188,22 +117,71 @@ func (w *World) stateAllEntities() []byte {
 	return b
 }
 
-/*
-func (w *World) stateAllTrees() []byte {
-	t, _, err := CompressBoolGrid(w.Trees.grid)
-	if err != nil {
-		log.Println(err)
-		return []byte{}
+// ______________________________________________________
+// 		Message & Event Handler
+// ------------------------------------------------------
+
+// DoGameEvent actually executes the functions to the game world.
+// Passing AbstractEvent messages to DoGameEvent will check what kind of
+// event it is, and if it has the required parameters, and then attempt to
+// do that function.
+//
+// Sometimes events require a channel for data to be sent back.  For those
+// Events, it is assumed that a receiving channel is created prior to
+// calling DoGameEvent.  If there is a channel included in the AbstractEvent,
+// then it can be utilized by this event handler.
+//
+func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
+	switch a.EventType {
+
+	case "LifeState":
+		msg := w.War.LifeStateMessage()
+		if a.Response != nil {
+			a.Response <- msg
+			return true
+		}
+
+	case "LifeUpdate":
+		w.War.LifeUpdate()
+		return true
+
+	case "LifeChange":
+		//
+		// !NOTE! The naming of this Location is confusing.
+		// It is actually a "GridLocation" type in messages.go
+		//
+		w.War.ChangeAt(a.Location.X, a.Location.Y, a.Value)
+		return true
+
+	case "LaBomba":
+		return w.War.DropBomb(a.Value, a.Location.X, a.Location.Y)
+
+	case "GameState":
+		if a.Response != nil {
+			a.Response <- w.stateAllEntities()
+			return true
+		}
+
+	case "Move":
+		return w.changeEntityLocation(a.SourceId, a.Location.X, a.Location.Y)
+
+	case "Login":
+		if a.Response != nil {
+			id, _ := w.generatePlayer(a.EventBody)
+			a.Response <- id
+			return true
+		}
+
+	case "Logout":
+		return w.deleteEntity(a.TargetId)
+
+	case "Create":
+	case "Delete":
+
 	}
-	b64 := base64.StdEncoding.EncodeToString(t)
-	msg, err := json.Marshal(TreeState{b64})
-	if err != nil {
-		log.Println(err)
-		return []byte{}
-	}
-	return msg
+	return false
 }
-*/
+
 // ______________________________________________________
 //  The Game PRAM
 // ------------------------------------------------------
@@ -230,73 +208,19 @@ func NewGamePram() *GamePram {
 func (g *GamePram) run() {
 	for {
 		select {
-		case e := <-g.eventchan:
-			r := g.w.DoGameEvent(e)
-			if e.HasResponseChannel() {
-				e.Response <- r
-			}
-
-			/*		case e := <-g.adminchan:
-					r := g.w.DoAdminEvent(e)
-					if e.HasResponseChannel() {
-						e.Response <- r
-					}*/
+		case event := <-g.eventchan:
+			g.w.DoGameEvent(event)
 		}
 	}
 }
 
-func (g *GamePram) RequestTreeState() []byte {
+// RequestSomething helps send game event messages that requires a response.
+// It creates a response channel, sends the message, and awaits response.
+// The function returns the value as a byte stream.
+func (g *GamePram) RequestSomething(eventType string) []byte {
 	r := make(chan interface{})
 	event := &AbstractEvent{
-		EventType: "TreeState",
-		Response:  r,
-	}
-	g.eventchan <- event
-	a := <-r
-	output, ok := a.([]byte)
-	if ok {
-		return output
-	}
-	return []byte{}
-}
-
-func (g *GamePram) RequestLifeState() []byte {
-	r := make(chan interface{})
-	event := &AbstractEvent{
-		EventType: "LifeState",
-		Response:  r,
-	}
-	g.eventchan <- event
-	a := <-r
-	if output, ok := a.([]byte); ok {
-		return output
-	}
-	return []byte{}
-}
-
-func (g *GamePram) ToggleTreeEvent(x, y int, newVal bool) []byte {
-	r := make(chan interface{})
-	event := &AbstractEvent{
-		EventType: "ToggleTree",
-		Location:  Location{x, y},
-		Response:  r,
-	}
-	if newVal {
-		event.EventBody = "on"
-	}
-	g.eventchan <- event
-	a := <-r
-	output, ok := a.([]byte)
-	if ok {
-		return output
-	}
-	return []byte{}
-}
-
-func (g *GamePram) RequestGameState() []byte {
-	r := make(chan interface{})
-	event := &AbstractEvent{
-		EventType: "GameState",
+		EventType: eventType,
 		Response:  r,
 	}
 	g.eventchan <- event
@@ -316,26 +240,19 @@ func (g *GamePram) LoginEvent(username string) int {
 		EventBody: username,
 		Response:  r,
 	}
-	g.eventchan <- event
-	a := <-r
-	output, ok := a.(int)
+	g.eventchan <- event  // Send Event
+	a := <-r              // Wait for response
+	output, ok := a.(int) // Converts the empty interface into Integer
 	if ok {
 		return output
 	}
-	return 0
+	return 0 // If something unexpected happens, return 0.
 }
 
 func (g *GamePram) LogoutEvent(playerId int) {
 	event := &AbstractEvent{
 		EventType: "Logout",
 		TargetId:  playerId,
-	}
-	g.eventchan <- event
-}
-
-func (g *GamePram) UpdateTreesEvent() {
-	event := &AbstractEvent{
-		EventType: "UpdateTrees",
 	}
 	g.eventchan <- event
 }
