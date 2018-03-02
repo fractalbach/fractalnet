@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+*.zip
 fractalnet
 
 # Test binary, build with `go test -c`

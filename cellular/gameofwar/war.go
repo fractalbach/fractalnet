@@ -22,7 +22,7 @@ ___________________________________________________________________________
 */
 package gameofwar
 
-// package main
+//package main
 
 import (
 	"bytes"
@@ -156,13 +156,13 @@ func (l *Life) doLaBomba(x, y int) {
 	l.AlterAt(x, y, 5)
 	l.AlterAt(x+1, y, 5)
 	l.AlterAt(x-1, y, 5)
-	l.AlterAt(x, y+1, 3)
-	l.AlterAt(x, y-1, 3)
+	l.AlterAt(x, y+1, 5)
+	l.AlterAt(x, y-1, 5)
 
 	l.AlterAt(x+1, y+1, 4)
 	l.AlterAt(x-1, y-1, 4)
-	l.AlterAt(x-1, y+1, 3)
-	l.AlterAt(x+1, y-1, 3)
+	l.AlterAt(x-1, y+1, 4)
+	l.AlterAt(x+1, y-1, 4)
 
 	// ---------------------------
 	// The Others
@@ -429,14 +429,29 @@ func (f *Field) Next(x, y int) uint8 {
 	me := f.WhatIs(x, y)   // What value is at this cell?``
 	enemy := WhoEatsMe(me) // What cell eats this value?
 
+	if me <= 2 {
+		if n[1] > n[2] && (n[1] >= 6) {
+			return 1
+		}
+		if n[2] > n[1] && (n[2] >= 6) {
+			return 2
+		}
+	}
 	if n[enemy] == 2 {
 		return enemy
 	}
 	if n[me] >= 5 && me >= 3 {
 		return 0
 	}
+
 	if me > 6 {
 		return 0
+	}
+	if me <= 2 && n[enemy] == 1 {
+		random := rand.Intn(15)
+		if random == 0 {
+			return enemy
+		}
 	}
 	if me >= 3 {
 		return me + 1
@@ -469,15 +484,14 @@ func main() {
         fmt.Print("\x0c") // Clear screen and print field.
         fmt.Println("Iteration =", i)
         if t == i {
-            g.life.doLaBomba(20, 20)
+            g.life.doLaBomba(10, 10)
+		g.life.doLaBomba(30,10)
+		g.life.doLaBomba(30,20)
+
+		g.life.doLaBomba(20,40)
         }
         fmt.Print(g.life)
-
-        time.Sleep(time.Second / 60)
+        time.Sleep(time.Second / 30)
     }
 }
 */
-/*
-x := l.a.encodeFieldData()
-fmt.Println(len(x))
-fmt.Println(string(x)[:100])*/

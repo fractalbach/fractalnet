@@ -13,13 +13,6 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-var THE_RED = '#F22';
-var THE_GREEN = '#2F2';
-var THE_BLUE = '#45F';
-//var THE_RED = 'red';
-//var THE_GREEN = 'green';
-//var THE_BLUE = 'blue';
-var EMPTY_SQUARE = "#AAA"
 var PLAYER_1 = "#030";
 var PLAYER_2 = "#49F";
 
@@ -28,6 +21,8 @@ var SQUARE_4 = "#D10";
 var SQUARE_5 = "#B20";
 var SQUARE_6 = "#930";
 var SQUARE_7 = "#840";
+
+var EMPTY_SQUARE = "#AAA"
 var UNKNOWN_SQUARE = "#A55";
 
 var MAP_WIDTH = 48;
@@ -43,7 +38,7 @@ var gridBox = {
 };
 
 
-// Initialize the Boolean Array
+// Initialize the Map Array
 for (var i = MAP_WIDTH-1; i >= 0; i--) {
     asdf = [];
     for (var j = MAP_HEIGHT-1; j >= 0; j--) {
@@ -96,29 +91,31 @@ window.onload = function () {
         x = Math.floor(mousePos.x / gridBox.x);
         y = Math.floor(mousePos.y / gridBox.y);
 
-        var newval; var colorChanger = false;
+        var newval;
         switch (document.getElementById("ColorSelect").value) {
         case '1': 
-            newval = 1; 
-            colorChanger = true; 
+            LifeChange(x, y, 1);
             color = PLAYER_1;
             break;
 
         case '2': 
             newval = 2; 
-            colorChanger = true;
             color = PLAYER_2;
             break;
 
-        case 'bomba1': DropLaBomba(x, y, 1); break;
-        case 'bomba2': DropLaBomba(x, y, 2); break;
-        }
+        case 'bomba1': 
+            DropLaBomba(x, y, 1);
+            color = "#FFF";
+            break;
 
-        if (colorChanger) {
-            w.drawCharacterBox(x, y, color);
-            LifeChange(x, y, newval);
+        case 'bomba2': 
+            DropLaBomba(x, y, 2);
+            color = "#FFF";
+            break;
+
         }
-        
+        w.drawCharacterBox(x, y, color);
+
         if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
 
@@ -185,18 +182,9 @@ window.onload = function () {
             MyMessageWrap.className = "visible";
         }
     };
-
-
-    ToggleButton.onclick = function () {
-        toggleGameChatroom();
-
-    };
-    ToggleButton.onkeypress = function() {
-        toggleGameChatroom();
-    };
-
     cmdText.onfocus = function () {
-        if (ToggleButton.tabIndex == 1) {
+        if (ToggleButton.tabIndex == 1) 
+        {
             ToggleButton.tabIndex = 0;
         }
     };
@@ -205,6 +193,9 @@ window.onload = function () {
             ToggleButton.tabIndex = 1;
         }
     };
+    ToggleButton.onclick = function () {toggleGameChatroom();};
+    ToggleButton.onkeypress = function() {toggleGameChatroom();};
+
 
     document.getElementById("commandForm").onsubmit = function () {
         if (!conn) {return false;}
@@ -222,7 +213,6 @@ window.onload = function () {
         }
         
         cmdText.value = "";
-        
         return false;
     };
 

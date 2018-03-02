@@ -115,8 +115,35 @@ For example, in "The Game of War":
 ```
 
 
+## Directly Change Multiple Squares
 
+When you want many changes to be made within the same game tick:
 
+```JSON 
+{
+    "EventType": "ChangeMany",
+    "Changes": 
+    [
+        {
+            "Value": 1,
+            "Location": 
+            {
+                "X": 1,
+                "Y": 10,
+            }
+        },
+
+        {
+            "Value": 2,
+            "Location": 
+            {
+                "X": 2,
+                "Y": 20,
+            }
+        }
+    ]
+}    
+```
 
 
 
@@ -141,7 +168,7 @@ For example, in "The Game of War":
 
 
 
-# Experiments
+# Cellular Automata Experiments
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         Links to Various Playground Examples!
