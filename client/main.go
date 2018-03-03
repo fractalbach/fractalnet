@@ -1,28 +1,28 @@
 package main
 
 import (
-	"os"
-	//"flag"
+	"flag"
 	"log"
 	"net/http"
+	//"os"
 	"time"
 
 	"github.com/fractalbach/fractalnet/wschat"
 )
 
-//var addr = flag.String("a", "localhost:8080", "http service address")
+var addr = flag.String("a", "localhost:8080", "http service address")
 
 func main() {
 	log.Println("Starting up Fractal Game Net...")
-	//flag.Parse()
+	flag.Parse()
+	/*
+		addr := "localhost:8080"
 
-	addr := "localhost:8080"
+		arguments := os.Args[1:]
 
-	arguments := os.Args[1:]
-
-	if len(arguments) >= 1 {
-		addr = os.Args[0]
-	}
+		if len(arguments) >= 1 {
+			addr = os.Args[1]
+		}*/
 
 	log.Println("Starting Websocket Hub...")
 	hub := wschat.NewHub()
@@ -45,7 +45,7 @@ func main() {
 
 	// Define parameters for running a custom HTTP server
 	s := &http.Server{
-		Addr:           addr,
+		Addr:           *addr,
 		Handler:        mux,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
