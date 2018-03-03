@@ -1,6 +1,9 @@
 # FractalNet
 
 [![Build Status](https://travis-ci.org/fractalbach/fractalnet.svg?branch=master)](https://travis-ci.org/fractalbach/fractalnet)
+[![GoDoc](https://godoc.org/github.com/fractalbach/fractalnet?status.svg)](https://godoc.org/github.com/fractalbach/fractalnet)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fractalbach/fractalnet)](https://goreportcard.com/report/github.com/fractalbach/fractalnet)
+
 
 To Play the current version of whatever happens to be live, go to the
 server:
