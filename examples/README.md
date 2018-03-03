@@ -1,7 +1,7 @@
-# Experiments
+# Cellular Automata Experiments
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		Links to Various Playground Examples!
+        Links to Various Playground Examples!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -12,7 +12,7 @@ Map is color -> count
 or map[uint8]uint8,
 since the colors are enumerated.
 
-https://play.golang.org/p/onURkjVxI7K
+* https://play.golang.org/p/onURkjVxI7K
 
 ----------------------------------------------------------------------
 
@@ -32,13 +32,18 @@ This one is pretty odd.  But has an interesting property.
 
 # Wave Patterns
 
-This one is oddly beautiful
+
+
+## Rough Waves
+
+
+This one is oddly beautiful:
 https://play.golang.org/p/SofMEv8cpHM
 
-
-
-Waves of awesomeness
+Waves of awesomeness:
 https://play.golang.org/p/A9YtAkoVkIa
+
+
 
 
         ▓▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒▒█████████████████▒▒▒▒▒▓▓▓▓▓▓▓▓▓▓▓████████▒
@@ -85,6 +90,9 @@ and there are no extra cells to form at edge cases.
 The main difference from this wave and the previous wave is the fact that
 it has "return me" at the end.  Which means it won't change from it's 
 original value.
+
+
+This one is my favorite pattern!
 
 
 

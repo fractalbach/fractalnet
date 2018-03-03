@@ -1,7 +1,8 @@
 package main
 
 import (
-	"flag"
+	"os"
+	//"flag"
 	"log"
 	"net/http"
 	"time"
@@ -9,13 +10,21 @@ import (
 	"github.com/fractalbach/fractalnet/wschat"
 )
 
-var addr = flag.String("a", "localhost:8080", "http service address")
+//var addr = flag.String("a", "localhost:8080", "http service address")
 
 func main() {
-	log.Println("Starting up gamenet...")
-	flag.Parse()
+	log.Println("Starting up Fractal Game Net...")
+	//flag.Parse()
 
-	log.Println("Starting Hub...")
+	addr := "localhost:8080"
+
+	arguments := os.Args[1:]
+
+	if len(arguments) >= 1 {
+		addr = os.Args[0]
+	}
+
+	log.Println("Starting Websocket Hub...")
 	hub := wschat.NewHub()
 	go hub.Run()
 
@@ -36,14 +45,14 @@ func main() {
 
 	// Define parameters for running a custom HTTP server
 	s := &http.Server{
-		Addr:           *addr,
+		Addr:           addr,
 		Handler:        mux,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   5 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Println("Listening and Serving on ", *addr)
+	log.Println("Listening and Serving on ", addr)
 	log.Fatal(s.ListenAndServe())
 }
 
@@ -81,5 +90,5 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "client/favicon.ico")
+	http.ServeFile(w, r, "favicon.ico")
 }

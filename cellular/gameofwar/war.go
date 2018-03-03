@@ -165,17 +165,15 @@ func (l *Life) doLaBomba(x, y int) {
 	l.AlterAt(x+1, y-1, 4)
 
 	// ---------------------------
-	// The Others
+	// The Far Neighbors
 
-	// ---------------------------
-	// The Others
-
-	// Disabled Corners
+	//
+	/* The Corners
 	l.AlterAt(x+2, y-2, 3)
 	l.AlterAt(x+2, y+2, 3)
 	l.AlterAt(x-2, y-2, 3)
 	l.AlterAt(x-2, y+2, 3)
-
+	*/
 	l.AlterAt(x+2, y-1, 3)
 	l.AlterAt(x+2, y, 3)
 	l.AlterAt(x+2, y+1, 3)
@@ -190,8 +188,6 @@ func (l *Life) doLaBomba(x, y int) {
 	l.AlterAt(x-1, y+2, 3)
 
 }
-
-// ~~~~~~~~~~~~~~~~~~  End of Customization Zone  ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ===========================================================================
 //      Cellular Automata Grid and Stuff
@@ -220,16 +216,18 @@ func NewNeighborhood() map[uint8]uint8 {
 // If will only return a 0 if it passes through all of the cases.
 func WhoEatsMe(myColor uint8) uint8 {
 	switch myColor {
+	case 0:
+		return 3 // empty  <- red
 	case 1:
-		return 3 // player1 eaten by red
+		return 3 // player1 <-  red
 	case 2:
-		return 3 // player2 eaten by red
+		return 3 // player2 <- red
 	case 3:
-		return 4 // A <- B
+		return 4
 	case 4:
-		return 5 // B <- C
+		return 5
 	case 5:
-		return 6 // C <- Neutral
+		return 6
 	case 6:
 		return 3
 	}
@@ -398,9 +396,7 @@ func (l *Life) AlterAt(x, y int, val uint8) {
 
 //  _________________________________________________________________________
 // /~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
-//
 //      *~-.,_,.-~-.,_ Unique Functions for Mechanics  _,.-~-.,_,.-~*
-//
 // |_________________________________________________________________________|
 // |~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~|
 
@@ -408,15 +404,16 @@ func (l *Life) AlterAt(x, y int, val uint8) {
 func (f *Field) Next(x, y int) uint8 {
 
 	cellsToCheck := []uint8{ // Count values in adjacent cells.
-		f.WhatIs(x+1, y),
-		f.WhatIs(x-1, y),
 		f.WhatIs(x, y+1),
 		f.WhatIs(x, y-1),
 
-		f.WhatIs(x+2, y),
-		f.WhatIs(x-2, y),
-		f.WhatIs(x, y+2),
-		f.WhatIs(x, y-2),
+		f.WhatIs(x-1, y-1),
+		f.WhatIs(x-1, y),
+		f.WhatIs(x-1, y+1),
+
+		f.WhatIs(x+1, y-1),
+		f.WhatIs(x+1, y+1),
+		f.WhatIs(x+1, y),
 	}
 	// Make a "neighborhood" HashMap to hold the (Key, Value) Pairs.
 	// Count the cells values, and add them to the counters.
@@ -430,7 +427,7 @@ func (f *Field) Next(x, y int) uint8 {
 	enemy := WhoEatsMe(me) // What cell eats this value?
 
 	if me <= 2 {
-		if n[1] > n[2] && (n[1] >= 6) {
+		if n[1] > n[2] && (n[1] >= 7) {
 			return 1
 		}
 		if n[2] > n[1] && (n[2] >= 6) {
@@ -440,6 +437,7 @@ func (f *Field) Next(x, y int) uint8 {
 	if n[enemy] == 2 {
 		return enemy
 	}
+
 	if n[me] >= 5 && me >= 3 {
 		return 0
 	}
@@ -485,13 +483,16 @@ func main() {
         fmt.Println("Iteration =", i)
         if t == i {
             g.life.doLaBomba(10, 10)
-		g.life.doLaBomba(30,10)
-		g.life.doLaBomba(30,20)
-
-		g.life.doLaBomba(20,40)
+			g.life.doLaBomba(30,10)
+			g.life.doLaBomba(30,20)
+			g.life.doLaBomba(20,40)
         }
         fmt.Print(g.life)
         time.Sleep(time.Second / 30)
     }
 }
 */
+/*
+x := l.a.encodeFieldData()
+fmt.Println(len(x))
+fmt.Println(string(x)[:100])*/

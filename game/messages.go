@@ -21,6 +21,11 @@ type Message struct {
 	Body interface{}
 }
 
+type SingleChange struct {
+	Value    uint8
+	Location Location
+}
+
 // AbstractEvent is a structured form of a message, ready to be used by game.
 // It is created from either Player or Admin Messages.
 //
@@ -28,7 +33,7 @@ type AbstractEvent struct {
 
 	// EventId is a unique number used to compare different events going
 	// through the system.  Currently NOT IN USE.
-	EventId int
+	//EventId int
 
 	// SourceId is usually the PlayerId of the client who sent initial request.
 	SourceId int
@@ -52,11 +57,13 @@ type AbstractEvent struct {
 	SourceType string
 
 	// TargetType could be something like "player" or "tree".
-	TargetType string
+	//TargetType string
 
 	// Position is an array of values that imply a map location.
 	// Can relate to either source or target, depending on the event type.
-	Position []float64
+	//Position []float64
+
+	Changes []SingleChange
 
 	// Response is a channel that used to return values back to the caller.
 	Response chan interface{}
@@ -74,9 +81,9 @@ func (m *Message) GetBody() interface{} {
 	return m.Body
 }
 
-func (a *AbstractEvent) GetPosition() []float64 {
+/*func (a *AbstractEvent) GetPosition() []float64 {
 	return a.Position
-}
+}*/
 
 func (a *AbstractEvent) GetEventBody() string {
 	return a.EventBody
@@ -90,9 +97,9 @@ func (a *AbstractEvent) SetEventBody(s string) {
 	a.EventBody = s
 }
 
-func (a *AbstractEvent) SetPosition(newPos []float64) {
+/*func (a *AbstractEvent) SetPosition(newPos []float64) {
 	a.Position = newPos
-}
+}*/
 
 func (a *AbstractEvent) SetSourceId(id int) {
 	a.SourceId = id

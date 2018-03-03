@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>💥  Game of War 💣 </title>
+<title>💥 La Bomba 💣 </title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 
@@ -11,6 +11,16 @@
 //                             Global Variables
 // __________________________________________________________________________
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+//                        ~ The Holy Page Divider ~ 
+//                 ~ Only to be used in times of Emergency ~
+
+// 
+//                                 ~ | ~
+//    |------------------------------+------------------------------| 
+//                                 ~ | ~
+
 
 
 var PLAYER_1 = "#030";
@@ -56,6 +66,18 @@ for (var i = MAP_WIDTH-1; i >= 0; i--) {
 
 window.onload = function () {
 
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //                    Boat Load of Global Variables 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // 
+    // There are way to many variables here.  My editor has a bright blue
+    // color for these variables.  It is burning holes into my eyes just
+    // looking at this page.  It also burns a hole into my soul.
+    //
+    // This has GOT to be terrible practice.
+    // 
+
     var canvas = document.getElementById('MainCanvas');
     var ctx = canvas.getContext('2d');
     canvas.width = canvasSize.x;
@@ -75,7 +97,21 @@ window.onload = function () {
     var zInput = document.getElementById("zInput");
     var ToggleButton = document.getElementById("ButtonToggleCLI");
     
-    function getMousePos(canvas, evt) {
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //                        Utility Functions
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    // getMousePos figures out where your mouse is relative to the canvas.
+    // The values (event.clientX) and (event.clientY) will give you the 
+    // mouse position relative to the top left corner of the screen;
+    // and will return a value that you probably weren't expecting.
+    // 
+    // This happens especially when you have scrolled away from the browser's
+    // initial position.  So, this handy function will take of that:
+    // 
+    function getMousePos(canvas, evt) 
+    {
         var rect = canvas.getBoundingClientRect();
         return {
             x: evt.clientX - rect.left,
@@ -83,46 +119,195 @@ window.onload = function () {
         };
     }
 
+    // gridHash converts a coordinate pair (x,y) into a single value, while
+    // still representing the same spot on the grid.  Useful when adding
+    // unique elements to Sets. 
+    //
+    function gridHash(x,y) 
+    {
+        return (x + (y*MAP_WIDTH));
+    }
+
+    // gridUnHash simply reverses the process of gridhash.  Converting a 
+    // single values back into an (x,y) pair.
+    function gridUnHash(hash) 
+    {
+        return {
+            x: hash % MAP_WIDTH,
+            y: Math.floor(hash / MAP_WIDTH)
+        };
+    }
+
+    
+
+
+
+
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //                      Canvas Event Listeners 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Create an array to store the mouse locations the mouse is dragged 
+    // across the screen.
+    var userMousePathSet = new Set();
+
+    // HandleMouseMove is the function that fires every time the mouse is 
+    // dragged across the screen.  It SHOULD happen only when the mouse
+    // is pressed down.  It SHOULD also happen on mobiles, when somebody
+    // is pressing down and swiping across the surface of the device.
+    function HandleMouseMove(event) 
+    {
+        'use strict';
+
+        // Calculate the box that the mouse is currently hovering over.
+        var rect = canvas.getBoundingClientRect();
+        x = Math.floor((event.clientX - rect.left)  / gridBox.x);
+        y = Math.floor((event.clientY - rect.top) / gridBox.y);
+
+        // If the mouse is over a new box, we want to remember it.
+        // Hash up the (x,y)! Now, a single value can be added to a Set.
+        // Remember this box position for the next iteration.
+        if ( (x != lastX) || (y != lastY) ) 
+        {
+            userMousePathSet.add(gridHash(x, y));
+            w.drawCharacterBox(x,y , 'gray');
+            lastX = x;
+            lastY = y;
+        }
+    }
+
+
+    // When the mouse is pressed down, track the movements.
+    canvas.addEventListener('mousedown', function(event) 
+    {
+        // Quick check to make sure you are on Player1 or Player 2.
+        switch (document.getElementById("ColorSelect").value) {
+            case '1': case '2': break;
+            default: return;
+        }
+        if (event == null) {
+            return;
+        }
+
+        // Initialize variables for tracking boxes that mouse passes through.
+        lastX = -1;
+        lastY = -1;
+        userMousePathSet = new Set();
+
+        // Add the MouseMove event listener, which runs this function
+        // very frequently while the mouse moves across the canvas.
+        canvas.addEventListener('mousemove', HandleMouseMove, true);
+    });
+
+    
+    //                                 ~ | ~
+    //    |------------------------------+------------------------------| 
+    //                                 ~ | ~
+
+    // When the mouse is lifted up, remove the mouseMove listener,
+    // and send a message to apply those squares to the grid.
+    canvas.addEventListener('mouseup', function(event) 
+    {
+        // Remove the listener.  Helps prevent pointless events from firing.
+        canvas.removeEventListener("mousemove", HandleMouseMove, true);
+
+        var changes = [];
+
+        // UnHash the values from the set into (x,y) coordinates.
+        // Then, draw boxes on those squares so that it will look neat.
+        userMousePathSet.forEach(function(val) 
+        {
+            var box = gridUnHash(val);
+            changes.push( getNextLifeChange(box.x, box.y) );
+            w.drawCharacterBox(box.x, box.y, 'white');
+        });
+        
+        // Assume that if is only 1 box selected, it was just a regular click.
+        // If there are multiple: then it is a bulk message.
+        // Format the message, and send it across the websocket connection.
+        if (changes.length >= 2) 
+        {
+            var message = {EventType: "ChangeMany", Changes: changes};
+            conn.send(JSON.stringify(message));
+        }
+
+        // Just in case; reinitialize the Set variable.
+        userMousePathSet = new Set();
+    });
+
+
+
+    //                                 ~ | ~
+    //    |------------------------------+------------------------------| 
+    //                                 ~ | ~
+
+    function getNextLifeChange(x,y) 
+    {
+        var newval;
+        switch (document.getElementById("ColorSelect").value) 
+        {
+            case '1': 
+                newval = 1;
+                color = PLAYER_1;
+                break;
+
+            case '2': 
+                newval = 2; 
+                color = PLAYER_2;
+                break;
+
+            default:
+                return;
+        }
+        return { Value: newval, Location: {X: x, Y: y,} };
+    }
+
     // Whenever the Canvas is clicked, boxes will be changed!
     // TODO: Only send a message to the server if websocket connection = true
-    canvas.addEventListener('click', function(event) {
-
-        var mousePos = getMousePos(canvas, event);
-        x = Math.floor(mousePos.x / gridBox.x);
-        y = Math.floor(mousePos.y / gridBox.y);
-
+    canvas.addEventListener('click', function(event) 
+    {
+        // Calculate the Box that the mouse has clicked on.
+        var pos = getMousePos(canvas, event)
+        x = Math.floor(pos.x / gridBox.x);
+        y = Math.floor(pos.y / gridBox.y);
         var newval;
-        switch (document.getElementById("ColorSelect").value) {
-        case '1': 
-            LifeChange(x, y, 1);
-            color = PLAYER_1;
-            break;
+        switch (document.getElementById("ColorSelect").value) 
+        {
+            case '1': 
+                LifeChange(x, y, 1);
+                newval = 1;
+                color = PLAYER_1;
+                break;
 
-        case '2': 
-            newval = 2; 
-            color = PLAYER_2;
-            break;
+            case '2': 
+                LifeChange(x, y, 2);
+                newval = 2; 
+                color = PLAYER_2;
+                break;
 
-        case 'bomba1': 
-            DropLaBomba(x, y, 1);
-            color = "#FFF";
-            break;
+            case 'bomba1': 
+                DropLaBomba(x, y, 1);
+                color = "#FFF";
+                break;
 
-        case 'bomba2': 
-            DropLaBomba(x, y, 2);
-            color = "#FFF";
-            break;
+            case 'bomba2': 
+                DropLaBomba(x, y, 2);
+                color = "#FFF";
+                break;
 
+            default: return;
         }
         w.drawCharacterBox(x, y, color);
-
         if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
 
 
+
+
     // LifeChange formats and sends a command to the server that will
     // trigger the switching of a grid color.
-    var LifeChange = function(x, y, newval) {
+    var LifeChange = function(x, y, newval) 
+    {
         j = {
             "EventType": "LifeChange",
             "Value": newval,
@@ -131,7 +316,8 @@ window.onload = function () {
         conn.send(JSON.stringify(j));
     };
 
-    var DropLaBomba = function(x, y, player1or2) {
+    var DropLaBomba = function(x, y, player1or2) 
+    {
         j = {
             "EventType": "LaBomba",
             "Value": player1or2,
@@ -145,11 +331,13 @@ window.onload = function () {
     // iterates through each one, and draws them on the screen.
     // TODO: use the KEY (which is the ID) to do something
     // TODO: add support for different TYPES of objects
-    var DrawGameStateObjects = function() {
+    var DrawGameStateObjects = function() 
+    {
         w.reDraw();
         DrawColorsFromByteMatrix(w, MatrixOfTrees)
 
-        Object.keys(ListOfObjects).forEach(function (key) {
+        Object.keys(ListOfObjects).forEach(function (key) 
+        {
             try {   
                 A = ListOfObjects[key].Location[0];
                 B = ListOfObjects[key].Location[1];
@@ -163,7 +351,8 @@ window.onload = function () {
 
 
 
-    function appendLog(item) {
+    function appendLog(item) 
+    {
         log.appendChild(item);
         // var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
         // if (doScroll) {

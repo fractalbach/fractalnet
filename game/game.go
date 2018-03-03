@@ -175,6 +175,13 @@ func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 	case "Logout":
 		return w.deleteEntity(a.TargetId)
 
+	case "ChangeMany":
+		log.Println("Bulk Event: ChangeMany: Length:", len(a.Changes))
+		for i := range a.Changes {
+			w.War.ChangeAt(a.Changes[i].Location.X, a.Changes[i].Location.Y, a.Changes[i].Value)
+		}
+		return true
+
 	case "Create":
 	case "Delete":
 
