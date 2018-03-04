@@ -145,6 +145,13 @@ func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 		w.War.LifeUpdate()
 		return true
 
+	case "LifeRandomize":
+		numberToMake := 575
+		if a.Integer >= 0 {
+			numberToMake = a.Integer
+		}
+		w.War.RandomizeGameBoard(numberToMake)
+
 	case "LifeChange":
 		//
 		// !NOTE! The naming of this Location is confusing.

@@ -290,15 +290,33 @@ type Life struct {
 // NewLife returns a new Life game state with a random initial state.
 func NewLife(w, h int) *Life {
 	a := NewField(w, h)
-	for i := 0; i < w; i++ {
-		for j := 0; j < h; j++ {
-			a.Set(i, j, uint8(rand.Intn(2)+1))
+	/*
+		for i := 0; i < w; i++ {
+			for j := 0; j < h; j++ {
+				a.Set(i, j, uint8(rand.Intn(3)))
+			}
 		}
+	*/
+	for i := 0; i < (w * h / 4); i++ {
+		a.Set(rand.Intn(w), rand.Intn(h), uint8(rand.Intn(2)+1))
 	}
 	return &Life{
 		a: a, b: NewField(w, h),
 		w: w, h: h,
 	}
+}
+
+// ResetGameInstance will randomly create player squares.
+// The amount of player squares to make is specified by the "numberToMake".
+func (g *GameInstance) RandomizeGameBoard(numberToMake int) {
+	if numberToMake <= 0 {
+		numberToMake = g.w * g.h / 4
+	}
+	a := NewField(g.w, g.h)
+	for i := 0; i < numberToMake; i++ {
+		a.Set(rand.Intn(g.w), rand.Intn(g.h), uint8(rand.Intn(2)+1))
+	}
+	g.life.a = a
 }
 
 // Step advances the game by one instant, recomputing and updating all cells.
@@ -426,35 +444,49 @@ func (f *Field) Next(x, y int) uint8 {
 	me := f.WhatIs(x, y)   // What value is at this cell?``
 	enemy := WhoEatsMe(me) // What cell eats this value?
 
-	if me <= 2 {
-		if n[1] > n[2] && (n[1] >= 7) {
+	switch {
+
+	// ~~~~ Special Fire Rule ~~~~
+	/*
+		case me <= 2 && n[enemy] == 1 && rand.Intn(16) == 0:
+			return enemy //probability of being consumed by flame
+	*/
+
+	// ~~~~ Game of Life rules ~~~~
+	// Slightly modified from Conway's game; to deal with 2 players.
+	case me <= 2 && (n[1]+n[2]) >= 4: // overcrowded
+		return 0
+
+	case me <= 2:
+		switch {
+		case (n[1] == n[2]):
+			return 0
+
+		case (n[1] == 3), (me == 1 && n[1] == 2):
 			return 1
-		}
-		if n[2] > n[1] && (n[2] >= 6) {
+
+		case (n[2] == 3), (me == 2 && n[2] == 2):
 			return 2
+
+		default:
+			return 0
 		}
-	}
-	if n[enemy] == 2 {
+
+	// ~~~~ Special Game of War rules ~~~~
+
+	case n[enemy] == 2: //become consumed by another square
 		return enemy
-	}
 
-	if n[me] >= 5 && me >= 3 {
+	case me > 6: //fire has reached a low energy level; flame goes out.
 		return 0
-	}
 
-	if me > 6 {
+	case n[me] >= 5 && me >= 3: // too many flames, put it out.
 		return 0
-	}
-	if me <= 2 && n[enemy] == 1 {
-		random := rand.Intn(15)
-		if random == 0 {
-			return enemy
-		}
-	}
-	if me >= 3 {
-		return me + 1
-	}
 
+	case me >= 3:
+		return me + 1 // flame changes energy levels
+
+	} //end of switch
 	return me
 }
 

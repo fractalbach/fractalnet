@@ -41,6 +41,9 @@ type AbstractEvent struct {
 	// TargetId is usually a PlayerId used for "attack that person".
 	TargetId int
 
+	// Integer is some arbitrary integer
+	Integer int
+
 	// Value is an arbitrary byte value.
 	Value uint8
 

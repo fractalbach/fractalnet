@@ -54,7 +54,6 @@ Notes:
 ```
 
 
-
 ## Drop Bomb 💣 onto a Square (for the Game of War)
 
 Note: The "Value" field must be either 1 or 2.
@@ -149,6 +148,20 @@ When you want many changes to be made within the same game tick:
 
 
 
+## Reset & Randomize Game Board (Life Randomize)
+
+The "Integer" Field is **optional**.  It is the number of squares to that will 
+be placed on the board after the reset.  For example, if you set the "integer"
+field to 1:  Then 1 square will be created at a random location on the 
+game board, and will be randomly given to either player 1 or player 2.
+
+
+```JSON 
+{
+    "EventType": "LifeRandomize",
+    "Integer": 500,
+}    
+```
 
 
 
