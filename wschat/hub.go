@@ -43,7 +43,7 @@ func (h *Hub) Run() {
 	// Set a Timer to Update the Tree Generations
 	// treeUpdateTicker := time.NewTicker(1 * time.Second)
 	// go h.treeUpdateTimer(treeUpdateTicker)
-	lifeUpdateTicker := time.NewTicker(1 * time.Second)
+	lifeUpdateTicker := time.NewTicker(250 * time.Millisecond)
 	go h.lifeUpdateTimer(lifeUpdateTicker)
 
 	// Enter Hub Loop; waiting for messages to arrive from clients.

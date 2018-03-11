@@ -21,7 +21,7 @@
 //    |------------------------------+------------------------------| 
 //                                 ~ | ~
 
-var PLAYER_1 = "#080";
+var PLAYER_1 = "#0A0";
 var PLAYER_2 = "#44F";
 var SQUARE_3 = "#B00";
 var SQUARE_4 = "#C22";
@@ -145,7 +145,7 @@ window.onload = function () {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Create an array to store the mouse locations the mouse is dragged 
     // across the screen.
- /*   var userMousePathSet = new Set();
+    var userMousePathSet = new Set();
 
     // HandleMouseMove is the function that fires every time the mouse is 
     // dragged across the screen.  It SHOULD happen only when the mouse
@@ -231,7 +231,7 @@ window.onload = function () {
         userMousePathSet = new Set();
     });
 
-*/
+
 
     //                                 ~ | ~
     //    |------------------------------+------------------------------| 
@@ -266,35 +266,25 @@ window.onload = function () {
         var pos = getMousePos(canvas, event)
         x = Math.floor(pos.x / gridBox.x);
         y = Math.floor(pos.y / gridBox.y);
-        //var newval;
-        DropLaBomba(x, y);
-/*
+        
         switch (document.getElementById("ColorSelect").value) 
         {
             case '1': 
                 LifeChange(x, y, 1);
-                newval = 1;
                 color = PLAYER_1;
                 break;
 
             case '2': 
                 LifeChange(x, y, 2);
-                newval = 2; 
                 color = PLAYER_2;
                 break;
 
-            case 'bomba1': 
+            case 'bomba': 
                 DropLaBomba(x, y);
-                color = "#FFF";
-                break;
-
-            case 'bomba2': 
-                DropLaBomba(x, y);
-                color = "#FFF";
                 break;
 
             default: return;
-        }*/
+        }
         w.drawCharacterBox(x, y, "#FFF");
         if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
@@ -689,7 +679,9 @@ function World(context) {
     this.reDraw = function() {
         var canvas = document.getElementById('MainCanvas');
         //this.c.fillStyle = "#FFF"
-        this.c.clearRect(0, 0, canvas.width, canvas.height);
+        this.c.fillStyle = "#222";
+        this.c.fillRect(0,0,canvas.width, canvas.height)
+        //this.c.clearRect(0, 0, canvas.width, canvas.height);
         //this.drawGridLines();
     };
 
@@ -1006,12 +998,11 @@ option {
         </div>
     </div>
 
-    <div id="ColorSelectWrap" class="invisible">
+    <div id="ColorSelectWrap" >
         <select id="ColorSelect">
+            <option value="bomba">💣 La Bomba 💣</option>
             <option value="1" >Player 1</option>
-            <option value="bomba1">💣 Player 1 - La Bomba 💣</option>
             <option value="2">Player 2</option>
-            <option value="bomba2">💣 Player 2 - La Bomba 💣</option>
         </select>
     </div>
 </div>

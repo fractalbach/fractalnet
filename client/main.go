@@ -68,24 +68,28 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch r.URL.Path {
-	case "/":
-		http.ServeFile(w, r, "index.html")
-		return
+	http.ServeFile(w, r, "war.html")
+	return
+	/*
+		switch r.URL.Path {
+		case "/":
+			//http.ServeFile(w, r, "index.html")
+			http.ServeFile(w, r, "war.html")
+			return
 
-	case "/gamechat.html":
-		http.ServeFile(w, r, "gamechat.html")
-		return
+		case "/gamechat.html":
+			http.ServeFile(w, r, "gamechat.html")
+			return
 
-	case "/war.html":
-		http.ServeFile(w, r, "war.html")
-		return
+		case "/war.html":
+			http.ServeFile(w, r, "war.html")
+			return
 
-	default:
-		http.Error(w, "Not found", 404)
-		return
-	}
-
+		default:
+			http.Error(w, "Not found", 404)
+			return
+		}
+	*/
 	http.Error(w, "Bad Request.", 400)
 }
 
