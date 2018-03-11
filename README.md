@@ -14,21 +14,6 @@ Hosted on Google Cloud.
 
 
 
-# Cellular Automata
-
-* Each grid square is one of 4 different types:  Red, Green, Blue, or Empty.
-* The "Neighborhood" of a cell is the 8 surrounding cells.
-
-
-Color | Enemy | Fun Description
-------|-------|------------------------
-Red | Blue | Water puts out a fire.
-Blue | Green | Earth grows out of water.
-Green | Red | Fire burns the earth. 
-
-
-
-
 
 # Message Examples
 
@@ -148,7 +133,23 @@ When you want many changes to be made within the same game tick:
 
 
 
-## Reset & Randomize Game Board (Life Randomize)
+## Reset & Randomize Game Board
+
+
+### Fresh Game 
+
+A simple Reset of the game board, where every square becomes either player 1
+or player 2.
+
+
+```JSON 
+{
+    "EventType": "FreshGame"
+}    
+```
+
+
+### Randomize Placements
 
 The "Integer" Field is **optional**.  It is the number of squares to that will 
 be placed on the board after the reset.  For example, if you set the "integer"

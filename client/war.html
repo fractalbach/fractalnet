@@ -21,18 +21,14 @@
 //    |------------------------------+------------------------------| 
 //                                 ~ | ~
 
-
-
-var PLAYER_1 = "#030";
-var PLAYER_2 = "#49F";
-
-var SQUARE_3 = "#F00";
-var SQUARE_4 = "#D10";
-var SQUARE_5 = "#B20";
-var SQUARE_6 = "#930";
-var SQUARE_7 = "#840";
-
-var EMPTY_SQUARE = "#AAA"
+var PLAYER_1 = "#080";
+var PLAYER_2 = "#44F";
+var SQUARE_3 = "#B00";
+var SQUARE_4 = "#C22";
+var SQUARE_5 = "#D44";
+var SQUARE_6 = "#E66";
+var SQUARE_7 = "#F88";
+var EMPTY_SQUARE = "#AAA";
 var UNKNOWN_SQUARE = "#A55";
 
 var MAP_WIDTH = 48;
@@ -83,7 +79,7 @@ window.onload = function () {
     canvas.width = canvasSize.x;
     canvas.height = canvasSize.y;
     var w = new World(ctx);
-    w.drawGridLines();
+    // w.drawGridLines();
     w.c.save();
 
     var conn;
@@ -149,7 +145,7 @@ window.onload = function () {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Create an array to store the mouse locations the mouse is dragged 
     // across the screen.
-    var userMousePathSet = new Set();
+ /*   var userMousePathSet = new Set();
 
     // HandleMouseMove is the function that fires every time the mouse is 
     // dragged across the screen.  It SHOULD happen only when the mouse
@@ -235,7 +231,7 @@ window.onload = function () {
         userMousePathSet = new Set();
     });
 
-
+*/
 
     //                                 ~ | ~
     //    |------------------------------+------------------------------| 
@@ -270,7 +266,9 @@ window.onload = function () {
         var pos = getMousePos(canvas, event)
         x = Math.floor(pos.x / gridBox.x);
         y = Math.floor(pos.y / gridBox.y);
-        var newval;
+        //var newval;
+        DropLaBomba(x, y);
+/*
         switch (document.getElementById("ColorSelect").value) 
         {
             case '1': 
@@ -286,18 +284,18 @@ window.onload = function () {
                 break;
 
             case 'bomba1': 
-                DropLaBomba(x, y, 1);
+                DropLaBomba(x, y);
                 color = "#FFF";
                 break;
 
             case 'bomba2': 
-                DropLaBomba(x, y, 2);
+                DropLaBomba(x, y);
                 color = "#FFF";
                 break;
 
             default: return;
-        }
-        w.drawCharacterBox(x, y, color);
+        }*/
+        w.drawCharacterBox(x, y, "#FFF");
         if (ToggleButton.tabIndex == 1) {ToggleButton.tabIndex = 0;}
     });
 
@@ -316,11 +314,10 @@ window.onload = function () {
         conn.send(JSON.stringify(j));
     };
 
-    var DropLaBomba = function(x, y, player1or2) 
+    var DropLaBomba = function(x, y) 
     {
         j = {
             "EventType": "LaBomba",
-            "Value": player1or2,
             "Location": {"X": x,"Y": y},
         };    
         conn.send(JSON.stringify(j));
@@ -691,8 +688,9 @@ function World(context) {
 
     this.reDraw = function() {
         var canvas = document.getElementById('MainCanvas');
+        //this.c.fillStyle = "#FFF"
         this.c.clearRect(0, 0, canvas.width, canvas.height);
-        this.drawGridLines();
+        //this.drawGridLines();
     };
 
     this.drawLine = function (x0, y0, xf, yf) {
@@ -1008,7 +1006,7 @@ option {
         </div>
     </div>
 
-    <div id="ColorSelectWrap">
+    <div id="ColorSelectWrap" class="invisible">
         <select id="ColorSelect">
             <option value="1" >Player 1</option>
             <option value="bomba1">💣 Player 1 - La Bomba 💣</option>

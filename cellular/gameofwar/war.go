@@ -74,25 +74,25 @@ func NewGameInstance(w, h int) *GameInstance {
 
 // DropBomb takes a player number (1 or 2), and a position on the grid.
 // If that action is allowed, then it will do that action
-func (g *GameInstance) DropBomb(p uint8, x, y int) bool {
-
-	// Error Check: Player ID should only be 1 or 2.
-	if (p != 1) && (p != 2) {
-		log.Println("DropBomb: That is not a valid team number.")
-		return false
-	}
-
-	// Checks to see if the player is actually allowed to bomb that spot.
-	me := g.life.a.WhatIs(x, y)
-	if (p != me) && (p != 0) {
-		log.Println("Team", p, "not allowed to drop bomb at:", x, y)
-		return false
-	}
-
-	// If all goes well, then blow up a bomb!
+func (g *GameInstance) DropBomb(x, y int) bool {
 	g.life.doLaBomba(x, y)
-	log.Println("team", p, "Dropped La Bomba! at", x, y)
 	return true
+	/*
+		// Error Check: Player ID should only be 1 or 2.
+		if (p != 1) && (p != 2) {
+			log.Println("DropBomb: That is not a valid team number.")
+			return false
+		}
+
+		// Checks to see if the player is actually allowed to bomb that spot.
+		me := g.life.a.WhatIs(x, y)
+		if (p != me) && (p != 0) {
+			log.Println("Team", p, "not allowed to drop bomb at:", x, y)
+			return false
+		}
+	*/
+	//log.Println("team", p, "Dropped La Bomba! at", x, y)
+
 }
 
 // ===========================================================================
@@ -199,29 +199,104 @@ type Field struct {
 	w, h int
 }
 
-// Neighborhood represents the total color counts in the surrounding cells.
-func NewNeighborhood() map[uint8]uint8 {
-	return map[uint8]uint8{
-		0: 0, // Empty Neutral
-		1: 0, // player 1
-		2: 0, // player 2
-		3: 0, // A
-		4: 0, // B
-		5: 0, // C
-		6: 0, // Static? (may be not used)
+// Neighborhood stores 2 useful maps:
+// 1. The cell values based on location,
+// 2. The total number of cells found nearby, based on a specific cell value.
+type Neighborhood struct {
+	direct map[uint8]uint8
+	totals map[uint8]uint8
+}
+
+// North returns the value at coordinate (+0, -1) relative to center.
+func (n *Neighborhood) North() uint8 {
+	return n.direct[0]
+}
+
+// South returns the value at coordinate (+0, +1) relative to center.
+func (n *Neighborhood) South() uint8 {
+	return n.direct[1]
+}
+
+// East returns the value at coordinate (+1, +0) relative to center.
+func (n *Neighborhood) East() uint8 {
+	return n.direct[2]
+}
+
+// West returns the value at coordinate (-1, +0) relative to center.
+func (n *Neighborhood) West() uint8 {
+	return n.direct[3]
+}
+
+// NorthEast returns the value at coordinate (+1, -1) relative to center.
+func (n *Neighborhood) NorthEast() uint8 {
+	return n.direct[4]
+}
+
+// NorthWest returns the value at coordinate (-1, -1) relative to center.
+func (n *Neighborhood) NorthWest() uint8 {
+	return n.direct[5]
+}
+
+// SouthEast returns the value at coordinate (+1, +1) relative to center.
+func (n *Neighborhood) SouthEast() uint8 {
+	return n.direct[6]
+}
+
+// SouthWest returns the value at coordinate (+1, -1) relative to center.
+func (n *Neighborhood) SouthWest() uint8 {
+	return n.direct[7]
+}
+
+// Count returns the total number of cells in the neighborhood that contain
+// the specified value.
+func (n *Neighborhood) Count(cellValue uint8) uint8 {
+	return n.totals[cellValue]
+}
+
+// NewMooreNeighborhood returns a neighborhood of cells that include the 4
+// cardinal directions and the 4 diagonals, for a total of 8 nearby cells.
+func NewMooreNeighborhood(f *Field, x, y int) *Neighborhood {
+	n := Neighborhood{
+		direct: map[uint8]uint8{
+			0: f.WhatIs(x, y-1),   // North
+			1: f.WhatIs(x, y+1),   // South
+			2: f.WhatIs(x+1, y),   //East
+			3: f.WhatIs(x-1, y),   // West
+			4: f.WhatIs(x+1, y-1), // North-East
+			5: f.WhatIs(x-1, y-1), // North-West
+			6: f.WhatIs(x+1, y+1), // South-East
+			7: f.WhatIs(x-1, y+1), // South-West
+		},
+		totals: map[uint8]uint8{
+			0: 0, // Empty Neutral
+			1: 0, // player 1
+			2: 0, // player 2
+			3: 0, // A
+			4: 0, // B
+			5: 0, // C
+			6: 0, // Static? (may be not used)
+			7: 0,
+		},
 	}
+	for _, cellValue := range n.direct {
+		if _, ok := n.totals[cellValue]; ok {
+			n.totals[cellValue]++
+		}
+	}
+	return &n
 }
 
 // WhoEatsMe returns the color that consumes the specified color, if nearby.
 // If will only return a 0 if it passes through all of the cases.
+/*
 func WhoEatsMe(myColor uint8) uint8 {
 	switch myColor {
 	case 0:
 		return 3 // empty  <- red
 	case 1:
-		return 3 // player1 <-  red
+		return 2 // 1 <- 2
 	case 2:
-		return 3 // player2 <- red
+		return 1 // 2 <- 1
 	case 3:
 		return 4
 	case 4:
@@ -234,7 +309,7 @@ func WhoEatsMe(myColor uint8) uint8 {
 	return 0 // empty eaten by empty
 	// uint8(rand.Intn(5))
 }
-
+*/
 // Abundance the color(s), which corresponds to a value [1-3],
 // and the number of counted neighbors of that color [0-8].
 // Since there could be a tie for the highest count,
@@ -290,16 +365,17 @@ type Life struct {
 // NewLife returns a new Life game state with a random initial state.
 func NewLife(w, h int) *Life {
 	a := NewField(w, h)
+
+	for i := 0; i < w; i++ {
+		for j := 0; j < h; j++ {
+			a.Set(i, j, uint8(rand.Intn(2)+1))
+		}
+	}
 	/*
-		for i := 0; i < w; i++ {
-			for j := 0; j < h; j++ {
-				a.Set(i, j, uint8(rand.Intn(3)))
-			}
+		for i := 0; i < (w * h / 4); i++ {
+			a.Set(rand.Intn(w), rand.Intn(h), uint8(rand.Intn(2)+1))
 		}
 	*/
-	for i := 0; i < (w * h / 4); i++ {
-		a.Set(rand.Intn(w), rand.Intn(h), uint8(rand.Intn(2)+1))
-	}
 	return &Life{
 		a: a, b: NewField(w, h),
 		w: w, h: h,
@@ -315,6 +391,17 @@ func (g *GameInstance) RandomizeGameBoard(numberToMake int) {
 	a := NewField(g.w, g.h)
 	for i := 0; i < numberToMake; i++ {
 		a.Set(rand.Intn(g.w), rand.Intn(g.h), uint8(rand.Intn(2)+1))
+	}
+	g.life.a = a
+}
+
+func (g *GameInstance) FreshGameBoard() {
+	w, h := g.w, g.h
+	a := NewField(w, h)
+	for i := 0; i < w; i++ {
+		for j := 0; j < h; j++ {
+			a.Set(i, j, uint8(rand.Intn(2)+1))
+		}
 	}
 	g.life.a = a
 }
@@ -406,7 +493,7 @@ func (g *GameInstance) LifeUpdate() {
 
 // AlterAt changes the value at a specific position of the field.
 func (l *Life) AlterAt(x, y int, val uint8) {
-	if (x < 0) || (y < 0) || (x >= l.w) || (y >= l.h) || (val > maxEnumeration) {
+	if (x < 0) || (y < 0) || (x >= l.w) || (y >= l.h) {
 		return
 	}
 	l.a.Set(x, y, val)
@@ -420,71 +507,116 @@ func (l *Life) AlterAt(x, y int, val uint8) {
 
 // Next returns the state of the specified cell at the next time step.
 func (f *Field) Next(x, y int) uint8 {
+	/*
+		cellsToCheck := []uint8{ // Count values in adjacent cells.
+			f.WhatIs(x, y+1),
+			f.WhatIs(x, y-1),
 
-	cellsToCheck := []uint8{ // Count values in adjacent cells.
-		f.WhatIs(x, y+1),
-		f.WhatIs(x, y-1),
+			f.WhatIs(x-1, y-1),
+			f.WhatIs(x-1, y),
+			f.WhatIs(x-1, y+1),
 
-		f.WhatIs(x-1, y-1),
-		f.WhatIs(x-1, y),
-		f.WhatIs(x-1, y+1),
+			f.WhatIs(x+1, y-1),
+			f.WhatIs(x+1, y+1),
+			f.WhatIs(x+1, y),
 
-		f.WhatIs(x+1, y-1),
-		f.WhatIs(x+1, y+1),
-		f.WhatIs(x+1, y),
-	}
-	// Make a "neighborhood" HashMap to hold the (Key, Value) Pairs.
-	// Count the cells values, and add them to the counters.
-	n := NewNeighborhood()
-	for _, cellValue := range cellsToCheck {
-		if _, ok := n[cellValue]; ok {
-			n[cellValue]++
+			// Von Neumann group
+			f.WhatIs(x, y+2),
+			f.WhatIs(x, y-2),
+			f.WhatIs(x+2, y),
+			f.WhatIs(x-2, y),
 		}
-	}
-	me := f.WhatIs(x, y)   // What value is at this cell?``
-	enemy := WhoEatsMe(me) // What cell eats this value?
+		// Make a "neighborhood" HashMap to hold the (Key, Value) Pairs.
+		// Count the cells values, and add them to the counters.
+		n := NewNeighborhood()
+		for _, cellValue := range cellsToCheck {
+			if _, ok := n[cellValue]; ok {
+				n[cellValue]++
+			}
+		}
+	*/
+	n := NewMooreNeighborhood(f, x, y)
+	me := f.WhatIs(x, y) // What value is at this cell?``
+	//enemy := WhoEatsMe(me) // What cell eats this value?
 
-	switch {
+	if me >= 7 {
+		return 0
+	}
+
+	if me >= 3 {
+		return me + 1
+	}
+
+	switch me {
 
 	// ~~~~ Special Fire Rule ~~~~
-	/*
-		case me <= 2 && n[enemy] == 1 && rand.Intn(16) == 0:
-			return enemy //probability of being consumed by flame
-	*/
 
+	/*	case me <= 2 && n[enemy] == 1 && rand.Intn(16) == 0:
+		return enemy //probability of being consumed by flame
+	*/
 	// ~~~~ Game of Life rules ~~~~
 	// Slightly modified from Conway's game; to deal with 2 players.
-	case me <= 2 && (n[1]+n[2]) >= 4: // overcrowded
+
+	/*	case me <= 2 && (n[1]+n[2]) >= 4: // overcrowded
 		return 0
+	*/
 
-	case me <= 2:
-		switch {
-		case (n[1] == n[2]):
-			return 0
+	case 0:
+		points1 := 0
+		points2 := 0
 
-		case (n[1] == 3), (me == 1 && n[1] == 2):
-			return 1
-
-		case (n[2] == 3), (me == 2 && n[2] == 2):
-			return 2
-
-		default:
-			return 0
+		// Specific Squares for Player 2 -------------------
+		if n.North() == 2 {
+			points2++
+		}
+		if n.NorthWest() == 2 {
+			points2++
+		}
+		if n.NorthEast() == 2 {
+			points2++
+		}
+		if n.West() == 2 {
+			points2++
+		}
+		if n.East() == 2 {
+			points2++
 		}
 
-	// ~~~~ Special Game of War rules ~~~~
+		// Specific squares for Player 1 ---------------
 
-	case n[enemy] == 2: //become consumed by another square
-		return enemy
+		if n.South() == 1 {
+			points1++
+		}
+		if n.SouthEast() == 1 {
+			points1++
+		}
+		if n.SouthWest() == 1 {
+			points1++
+		}
+		if n.West() == 1 {
+			points1++
+		}
+		if n.East() == 1 {
+			points1++
+		}
 
-	case me > 6: //fire has reached a low energy level; flame goes out.
-		return 0
+		//Test...
+		if n.South() == 2 {
+			points2++
+		}
+		if n.North() == 1 {
+			points1++
+		}
+		// ... End Test
 
-	case n[me] >= 5 && me >= 3: // too many flames, put it out.
-		return 0
-
-	case me >= 3:
-		return me + 1 // flame changes energy levels
+		switch {
+		case points1 == points2:
+			return 7
+		case points1 > points2:
+			return 1
+		case points1 < points2:
+			return 2
+		}
 
 	} //end of switch
 	return me

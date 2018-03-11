@@ -152,6 +152,9 @@ func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 		}
 		w.War.RandomizeGameBoard(numberToMake)
 
+	case "FreshGame":
+		w.War.FreshGameBoard()
+
 	case "LifeChange":
 		//
 		// !NOTE! The naming of this Location is confusing.
@@ -161,7 +164,7 @@ func (w *World) DoGameEvent(a *AbstractEvent) interface{} {
 		return true
 
 	case "LaBomba":
-		return w.War.DropBomb(a.Value, a.Location.X, a.Location.Y)
+		return w.War.DropBomb(a.Location.X, a.Location.Y)
 
 	case "GameState":
 		if a.Response != nil {

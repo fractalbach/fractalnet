@@ -52,7 +52,7 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	log.Println("Listening and Serving on ", addr)
+	log.Println("Listening and Serving on ", (*addr))
 	log.Fatal(s.ListenAndServe())
 }
 
