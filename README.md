@@ -5,21 +5,12 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/fractalbach/fractalnet)](https://goreportcard.com/report/github.com/fractalbach/fractalnet)
 
 
-To Play the current version of whatever happens to be live, go to the
-server:
-
-## Location of Server:  http://35.230.55.6/
-
-Hosted on Google Cloud.
-
-
-
 
 # Message Examples
 
 Location of WebSocket:
 ```
-ws://35.230.55.6/ws
+/ws
 ```
 
 
